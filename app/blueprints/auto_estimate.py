@@ -415,28 +415,28 @@ def create_estimate(auto_estimate_id):
         
         customer_name = auto_estimate[0]
         
-        # 明細を取得
-        cur.execute('''
-            SELECT "材質名", "幅", "高さ", "数量", "備考"
-            FROM "T_自動見積もり明細"
-            WHERE "自動見積もりID" = %s
-        ''', (auto_estimate_id,))
+        # フォームから明細データを取得
+        items_json = request.form.getlist('items')
         
-        items = cur.fetchall()
+        if not items_json:
+            flash('明細データが見つかりません', 'error')
+            return redirect(url_for('auto_estimate.confirm', auto_estimate_id=auto_estimate_id))
+        
+        # JSONをパース
+        items = []
+        for item_json in items_json:
+            item = json.loads(item_json)
+            items.append((
+                item.get('material', ''),
+                item.get('width', 0),
+                item.get('height', 0),
+                item.get('quantity', 1),
+                item.get('notes', '')
+            ))
         
         if not items:
             flash('明細が見つかりません', 'error')
             return redirect(url_for('auto_estimate.confirm', auto_estimate_id=auto_estimate_id))
-        
-        # 材質マスタを取得（エラーハンドリング用）
-        cur.execute('''
-            SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", "specific_gravity"
-            FROM "T_材質"
-            WHERE "tenant_id" = %s
-            ORDER BY "name"
-        ''', (tenant_id,))
-        
-        materials = cur.fetchall()
         
         # 見積もり番号を生成
         from datetime import datetime
@@ -492,13 +492,8 @@ def create_estimate(auto_estimate_id):
             
             if not material:
                 conn.rollback()
-                return render_template('auto_estimate_confirm.html',
-                    auto_estimate_id=auto_estimate_id,
-                    customer_name=customer_name,
-                    items=items,
-                    materials=materials,
-                    error=f'材質「{material_name}」が見つかりませんでした。材質マスタに登録されている材質名を選択してください。'
-                )
+                flash(f'材質「{material_name}」が見つかりませんでした。材質マスタに登録されている材質名を選択してください。', 'error')
+                return redirect(url_for('auto_estimate.confirm', auto_estimate_id=auto_estimate_id))
             
             material_id, price_type, unit_price_area, unit_price_weight, density = material
             
@@ -510,13 +505,8 @@ def create_estimate(auto_estimate_id):
             
             if unit_price is None or unit_price == 0:
                 conn.rollback()
-                return render_template('auto_estimate_confirm.html',
-                    auto_estimate_id=auto_estimate_id,
-                    customer_name=customer_name,
-                    items=items,
-                    materials=materials,
-                    error=f'材質「{material_name}」の単価が設定されていません。'
-                )
+                flash(f'材質「{material_name}」の単価が設定されていません。', 'error')
+                return redirect(url_for('auto_estimate.confirm', auto_estimate_id=auto_estimate_id))
             
             # 面積計算（mm² → ㎡）
             area = (width * height) / 1000000

@@ -99,9 +99,9 @@
 
         <button type="button" class="btn-secondary" onclick="addItem()">+ 明細を追加</button>
 
-        <form method="POST" action="{{ url_for('auto_estimate.create_estimate', auto_estimate_id=auto_estimate[0]) }}" style="margin-top: 30px;">
+        <form method="POST" action="{{ url_for('auto_estimate.create_estimate', auto_estimate_id=auto_estimate[0]) }}" id="createEstimateForm" style="margin-top: 30px;">
             <div class="form-actions">
-                <button type="submit" class="btn-primary">この内容で見積もりを作成</button>
+                <button type="button" class="btn-primary" onclick="createEstimate()">この内容で見積もりを作成</button>
                 <button type="button" class="btn-secondary" onclick="saveItems()">明細を保存</button>
                 <a href="{{ url_for('auto_estimate.index') }}" class="btn-secondary">一覧に戻る</a>
             </div>
@@ -192,6 +192,55 @@
             });
 
             document.body.appendChild(form);
+            form.submit();
+        }
+
+        function createEstimate() {
+            const form = document.getElementById('createEstimateForm');
+            
+            // 既存のhidden inputをクリア
+            form.querySelectorAll('input[name="items"]').forEach(input => input.remove());
+            
+            // 明細データを収集
+            const items = [];
+            let hasError = false;
+            
+            document.querySelectorAll('.item-row').forEach(row => {
+                const material = row.querySelector('.material-select').value;
+                const width = row.querySelector('.width-input').value;
+                const height = row.querySelector('.height-input').value;
+                const quantity = row.querySelector('.quantity-input').value;
+                const notes = row.querySelector('.notes-input').value;
+                
+                if (!material || material === '') {
+                    alert('すべての明細で材質を選択してください');
+                    hasError = true;
+                    return;
+                }
+                
+                items.push({
+                    material: material,
+                    width: parseFloat(width),
+                    height: parseFloat(height),
+                    quantity: parseInt(quantity),
+                    notes: notes
+                });
+            });
+            
+            if (hasError || items.length === 0) {
+                return;
+            }
+            
+            // hidden inputとして追加
+            items.forEach(item => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'items';
+                input.value = JSON.stringify(item);
+                form.appendChild(input);
+            });
+            
+            // フォームを送信
             form.submit();
         }
     </script>
