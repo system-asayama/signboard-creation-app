@@ -107,4 +107,3 @@ class SignboardEstimate(Base):
     # リレーションシップ
     tenant = relationship("TTenant", backref="signboard_estimates")
     material = relationship("Material", backref="signboard_estimates")
-    items = relationship("SignboardEstimateItem", back_populates="estimate", cascade="all, delete-orphan")
