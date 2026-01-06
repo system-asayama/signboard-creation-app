@@ -428,6 +428,16 @@ def create_estimate(auto_estimate_id):
             flash('明細が見つかりません', 'error')
             return redirect(url_for('auto_estimate.confirm', auto_estimate_id=auto_estimate_id))
         
+        # 材質マスタを取得（エラーハンドリング用）
+        cur.execute('''
+            SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", "specific_gravity"
+            FROM "T_材質"
+            WHERE "tenant_id" = %s
+            ORDER BY "name"
+        ''', (tenant_id,))
+        
+        materials = cur.fetchall()
+        
         # 見積もり番号を生成
         from datetime import datetime
         today = datetime.now().strftime('%Y%m%d')
