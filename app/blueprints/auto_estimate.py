@@ -546,7 +546,7 @@ def create_estimate(auto_estimate_id):
         conn.commit()
         
         flash(f'見積もり {estimate_number} を作成しました', 'success')
-        return redirect(url_for('signboard.detail', estimate_id=estimate_id))
+        return redirect(url_for('signboard.estimate_detail', estimate_id=estimate_id))
         
     except Exception as e:
         conn.rollback()
