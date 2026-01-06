@@ -368,9 +368,9 @@ def confirm(auto_estimate_id):
     
     # 材質マスタを取得
     cur.execute('''
-        SELECT "id", "材質名", "単価タイプ", "単価"
+        SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight"
         FROM "T_材質"
-        WHERE "テナントID" = %s
+        WHERE "tenant_id" = %s AND "active" = 1
         ORDER BY "id"
     ''', (tenant_id,))
     
