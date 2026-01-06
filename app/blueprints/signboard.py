@@ -225,8 +225,8 @@ def material_new():
         
         sql = _sql(conn, 
             'INSERT INTO "T_材質" ("tenant_id", "name", "price_type", "unit_price_area", '
-            '"unit_price_weight", "specific_gravity", "thickness", "description") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)'
+            '"unit_price_weight", "specific_gravity", "thickness", "description", "active") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)'
         )
         cur.execute(sql, (
             tenant_id, name, price_type,
@@ -234,7 +234,8 @@ def material_new():
             float(unit_price_weight) if unit_price_weight else None,
             float(specific_gravity) if specific_gravity else None,
             float(thickness) if thickness else None,
-            description
+            description,
+            1  # active: 1=有効
         ))
         conn.commit()
         conn.close()
