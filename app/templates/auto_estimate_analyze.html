@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI解析実行</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .preview-area {
+            margin: 20px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .preview-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .preview-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-table {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AI解析実行</h1>
+        <div class="user-info">
+            {% if current_tenant_name %}
+                <span>テナント管理者: {{ current_tenant_name }}</span>
+            {% endif %}
+            <a href="{{ mypage_url }}" class="btn-link">マイページ</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>顧客名: {{ auto_estimate[1] }}</h2>
+
+        <h3>アップロードされた設計図</h3>
+        <div class="preview-area">
+            {% for file in blueprint_files %}
+                <div class="preview-item">
+                    {% if file[3] in ['png', 'jpg', 'jpeg'] %}
+                        <img src="{{ url_for('static', filename='uploads/blueprints/' + file[2].split('/')[-1]) }}" alt="{{ file[1] }}">
+                    {% else %}
+                        <p>📄 {{ file[1] }}</p>
+                        <p style="font-size: 0.9em; color: #666;">PDF ファイル</p>
+                    {% endif %}
+                    <p style="margin-top: 10px; font-size: 0.9em;">{{ file[1] }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div id="loadingArea" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>AI解析中です。しばらくお待ちください...</p>
+        </div>
+
+        <div id="resultArea" style="display: none;">
+            <h3>解析結果</h3>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>材質</th>
+                        <th>幅 (mm)</th>
+                        <th>高さ (mm)</th>
+                        <th>数量</th>
+                        <th>備考</th>
+                    </tr>
+                </thead>
+                <tbody id="resultTableBody">
+                </tbody>
+            </table>
+            <div class="form-actions" style="margin-top: 20px;">
+                <a href="{{ url_for('auto_estimate.confirm', auto_estimate_id=auto_estimate[0]) }}" class="btn-primary">確認・編集画面へ</a>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" id="analyzeBtn" class="btn-primary">AI解析を開始</button>
+            <a href="{{ url_for('auto_estimate.index') }}" class="btn-secondary">一覧に戻る</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const loadingArea = document.getElementById('loadingArea');
+            const resultArea = document.getElementById('resultArea');
+
+            analyzeBtn.disabled = true;
+            loadingArea.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            try {
+                const response = await fetch('{{ url_for("auto_estimate.api_analyze", auto_estimate_id=auto_estimate[0]) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 結果を表示
+                    const tbody = document.getElementById('resultTableBody');
+                    tbody.innerHTML = '';
+
+                    data.items.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.material || '不明'}</td>
+                            <td>${item.width || 0}</td>
+                            <td>${item.height || 0}</td>
+                            <td>${item.quantity || 1}</td>
+                            <td>${item.notes || ''}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    loadingArea.style.display = 'none';
+                    resultArea.style.display = 'block';
+                } else {
+                    alert('解析に失敗しました: ' + (data.error || '不明なエラー'));
+                    loadingArea.style.display = 'none';
+                    analyzeBtn.disabled = false;
+                }
+            } catch (error) {
+                alert('エラーが発生しました: ' + error.message);
+                loadingArea.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

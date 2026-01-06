@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI解析結果の確認</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .item-row {
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .item-row .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .item-row .form-group {
+            margin-bottom: 0;
+        }
+        .item-row button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AI解析結果の確認</h1>
+        <div class="user-info">
+            {% if current_tenant_name %}
+                <span>テナント管理者: {{ current_tenant_name }}</span>
+            {% endif %}
+            <a href="{{ mypage_url }}" class="btn-link">マイページ</a>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h2>顧客名: {{ auto_estimate[1] }}</h2>
+
+        <h3>抽出された明細</h3>
+        <p style="color: #666; margin-bottom: 20px;">
+            ※ 材質名、サイズ、数量を確認・修正してください。<br>
+            ※ 材質名は材質マスタに登録されている名前と一致させてください。
+        </p>
+
+        <div id="itemsContainer">
+            {% for item in items %}
+                <div class="item-row">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>材質名</label>
+                            <select class="material-select" data-index="{{ loop.index0 }}">
+                                <option value="">選択してください</option>
+                                {% for material in materials %}
+                                    <option value="{{ material[1] }}" {% if material[1] == item[1] %}selected{% endif %}>
+                                        {{ material[1] }} ({{ material[2] }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>幅 (mm)</label>
+                            <input type="number" class="width-input" value="{{ item[2] }}" data-index="{{ loop.index0 }}">
+                        </div>
+                        <div class="form-group">
+                            <label>高さ (mm)</label>
+                            <input type="number" class="height-input" value="{{ item[3] }}" data-index="{{ loop.index0 }}">
+                        </div>
+                        <div class="form-group">
+                            <label>数量</label>
+                            <input type="number" class="quantity-input" value="{{ item[4] }}" data-index="{{ loop.index0 }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>備考</label>
+                        <input type="text" class="notes-input" value="{{ item[5] or '' }}" data-index="{{ loop.index0 }}">
+                    </div>
+                    <button type="button" onclick="removeItem({{ loop.index0 }})">削除</button>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" class="btn-secondary" onclick="addItem()">+ 明細を追加</button>
+
+        <form method="POST" action="{{ url_for('auto_estimate.create_estimate', auto_estimate_id=auto_estimate[0]) }}" style="margin-top: 30px;">
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">この内容で見積もりを作成</button>
+                <button type="button" class="btn-secondary" onclick="saveItems()">明細を保存</button>
+                <a href="{{ url_for('auto_estimate.index') }}" class="btn-secondary">一覧に戻る</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let itemIndex = {{ items|length }};
+
+        function addItem() {
+            const container = document.getElementById('itemsContainer');
+            const itemRow = document.createElement('div');
+            itemRow.className = 'item-row';
+            itemRow.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>材質名</label>
+                        <select class="material-select" data-index="${itemIndex}">
+                            <option value="">選択してください</option>
+                            {% for material in materials %}
+                                <option value="{{ material[1] }}">{{ material[1] }} ({{ material[2] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>幅 (mm)</label>
+                        <input type="number" class="width-input" value="0" data-index="${itemIndex}">
+                    </div>
+                    <div class="form-group">
+                        <label>高さ (mm)</label>
+                        <input type="number" class="height-input" value="0" data-index="${itemIndex}">
+                    </div>
+                    <div class="form-group">
+                        <label>数量</label>
+                        <input type="number" class="quantity-input" value="1" data-index="${itemIndex}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>備考</label>
+                    <input type="text" class="notes-input" value="" data-index="${itemIndex}">
+                </div>
+                <button type="button" onclick="removeItem(${itemIndex})">削除</button>
+            `;
+            container.appendChild(itemRow);
+            itemIndex++;
+        }
+
+        function removeItem(index) {
+            const items = document.querySelectorAll('.item-row');
+            items.forEach(item => {
+                const materialSelect = item.querySelector('.material-select');
+                if (materialSelect && materialSelect.dataset.index == index) {
+                    item.remove();
+                }
+            });
+        }
+
+        function saveItems() {
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const index = row.querySelector('.material-select').dataset.index;
+                const material = row.querySelector('.material-select').value;
+                const width = row.querySelector('.width-input').value;
+                const height = row.querySelector('.height-input').value;
+                const quantity = row.querySelector('.quantity-input').value;
+                const notes = row.querySelector('.notes-input').value;
+
+                items.push({
+                    material: material,
+                    width: parseFloat(width),
+                    height: parseFloat(height),
+                    quantity: parseInt(quantity),
+                    notes: notes
+                });
+            });
+
+            // フォームを作成して送信
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("auto_estimate.confirm", auto_estimate_id=auto_estimate[0]) }}';
+
+            items.forEach(item => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'items';
+                input.value = JSON.stringify(item);
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+</body>
+</html>

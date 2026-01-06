@@ -198,6 +198,12 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"⚠️ signboard blueprint 登録エラー: {e}")
 
+    try:
+        from .blueprints.auto_estimate import auto_estimate_bp
+        app.register_blueprint(auto_estimate_bp)
+    except Exception as e:
+        print(f"⚠️ auto_estimate blueprint 登録エラー: {e}")
+
     # エラーハンドラ
     @app.errorhandler(404)
     def not_found(error):

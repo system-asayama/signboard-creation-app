@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自動見積もり作成</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #4CAF50;
+            background-color: #f0f8f0;
+        }
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+        .file-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .file-item button {
+            margin-left: auto;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>自動見積もり作成</h1>
+        <div class="user-info">
+            {% if current_tenant_name %}
+                <span>テナント管理者: {{ current_tenant_name }}</span>
+            {% endif %}
+            <a href="{{ mypage_url }}" class="btn-link">マイページ</a>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            <div class="form-group">
+                <label for="customer_name">顧客名 <span class="required">*</span></label>
+                <input type="text" id="customer_name" name="customer_name" placeholder="株式会社〇〇" required>
+            </div>
+
+            <div class="form-group">
+                <label>設計図ファイル <span class="required">*</span></label>
+                <div class="upload-area" id="uploadArea">
+                    <p>📁 ファイルをドラッグ&ドロップ<br>またはクリックして選択</p>
+                    <p style="font-size: 0.9em; color: #666;">対応形式: PDF, PNG, JPG, JPEG</p>
+                    <input type="file" id="fileInput" name="blueprint_files" multiple accept=".pdf,.png,.jpg,.jpeg" style="display: none;">
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">アップロードして解析開始</button>
+                <a href="{{ url_for('auto_estimate.index') }}" class="btn-secondary">キャンセル</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        let selectedFiles = [];
+
+        // クリックでファイル選択
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // ファイル選択時
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // ドラッグ&ドロップ
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            for (let file of files) {
+                if (!selectedFiles.find(f => f.name === file.name)) {
+                    selectedFiles.push(file);
+                }
+            }
+            updateFileList();
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span>📄 ${file.name} (${formatFileSize(file.size)})</span>
+                    <button type="button" onclick="removeFile(${index})">削除</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+
+            // DataTransferオブジェクトを使ってinputに設定
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => dataTransfer.items.add(file));
+            fileInput.files = dataTransfer.files;
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+    </script>
+</body>
+</html>

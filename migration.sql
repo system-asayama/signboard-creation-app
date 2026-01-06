@@ -1,0 +1,19 @@
+CREATE TABLE IF NOT EXISTS "T_看板見積もり明細" (
+    "ID" SERIAL PRIMARY KEY,
+    "見積もりID" INTEGER NOT NULL REFERENCES "T_看板見積もり"("id") ON DELETE CASCADE,
+    "材質ID" INTEGER NOT NULL REFERENCES "T_材質"("id"),
+    "幅" NUMERIC(10, 2) NOT NULL,
+    "高さ" NUMERIC(10, 2) NOT NULL,
+    "数量" INTEGER NOT NULL DEFAULT 1,
+    "面積" NUMERIC(10, 4),
+    "重量" NUMERIC(10, 4),
+    "単価タイプ" VARCHAR(20) NOT NULL,
+    "単価" NUMERIC(10, 2) NOT NULL,
+    "割引率" NUMERIC(5, 2) DEFAULT 0,
+    "割引後単価" NUMERIC(10, 2),
+    "小計" NUMERIC(12, 2) NOT NULL,
+    "作成日時" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "更新日時" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "idx_estimate_items_estimate_id" ON "T_看板見積もり明細"("見積もりID");

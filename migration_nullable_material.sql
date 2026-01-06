@@ -1,0 +1,1 @@
+ALTER TABLE "T_看板見積もり" ALTER COLUMN "material_id" DROP NOT NULL;

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自動見積もり一覧</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="header">
+        <h1>自動見積もり一覧</h1>
+        <div class="user-info">
+            {% if current_tenant_name %}
+                <span>テナント管理者: {{ current_tenant_name }}</span>
+            {% endif %}
+            <a href="{{ mypage_url }}" class="btn-link">マイページ</a>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="actions">
+            <a href="{{ url_for('auto_estimate.new') }}" class="btn-primary">新規自動見積もり</a>
+            <a href="{{ url_for('signboard.index') }}" class="btn-secondary">手動見積もり一覧</a>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>顧客名</th>
+                    <th>ステータス</th>
+                    <th>作成日時</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if auto_estimates %}
+                    {% for estimate in auto_estimates %}
+                        <tr>
+                            <td>{{ estimate[0] }}</td>
+                            <td>{{ estimate[1] }}</td>
+                            <td>
+                                {% if estimate[2] == '解析中' %}
+                                    <span class="badge badge-warning">{{ estimate[2] }}</span>
+                                {% elif estimate[2] == '確認待ち' %}
+                                    <span class="badge badge-info">{{ estimate[2] }}</span>
+                                {% else %}
+                                    <span class="badge badge-success">{{ estimate[2] }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ estimate[3].strftime('%Y年%m月%d日 %H:%M') if estimate[3] else '' }}</td>
+                            <td>
+                                {% if estimate[2] == '解析中' %}
+                                    <a href="{{ url_for('auto_estimate.analyze', auto_estimate_id=estimate[0]) }}" class="btn-link">解析実行</a>
+                                {% elif estimate[2] == '確認待ち' %}
+                                    <a href="{{ url_for('auto_estimate.confirm', auto_estimate_id=estimate[0]) }}" class="btn-link">確認</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">自動見積もりがありません</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="actions" style="margin-top: 20px;">
+            <a href="{{ url_for('tenant_admin.dashboard', tenant_id=session.get('tenant_id')) }}" class="btn-secondary">ダッシュボードに戻る</a>
+        </div>
+    </div>
+</body>
+</html>
