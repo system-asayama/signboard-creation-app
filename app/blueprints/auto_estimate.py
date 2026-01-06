@@ -445,11 +445,11 @@ def create_estimate(auto_estimate_id):
             INSERT INTO "T_看板見積もり" 
             ("estimate_number", "customer_name", "tenant_id", "material_id", "created_by", "created_by_role",
              "width", "height", "quantity", "area", "weight", "price_type", "unit_price", 
-             "discount_rate", "discounted_unit_price", "subtotal", "tax_rate", "tax_amount", "total_amount")
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             "discount_rate", "discounted_unit_price", "subtotal", "tax_rate", "tax_amount", "total_amount", "status")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING "id"
         ''', (estimate_number, customer_name, tenant_id, None, session.get('user_id'), session.get('role'),
-              0, 0, 0, 0, 0, '', 0, 0, 0, 0, 10, 0, 0))
+              0, 0, 0, 0, 0, '', 0, 0, 0, 0, 10, 0, 0, '作成済み'))
         
         estimate_id = cur.fetchone()[0]
         
