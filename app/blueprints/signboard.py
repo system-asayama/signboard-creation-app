@@ -376,7 +376,7 @@ def estimate_new():
             tenant_id,
             session.get('store_id') if role == 'admin' else None,
             user_id, role, estimate_number, customer_name,
-            0, 0, 0, 0,  # width, height, material_id, quantity（ダミー値）
+            0, 0, None, 0,  # width, height, material_id, quantity（ダミー値）
             0, None, 'area',  # area, weight, price_type（ダミー値）
             0, 0, 0,  # unit_price, discount_rate, discounted_unit_price（ダミー値）
             total_subtotal, tax_rate, tax_amount, total_amount,
