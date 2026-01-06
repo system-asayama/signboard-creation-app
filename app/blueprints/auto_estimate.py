@@ -440,13 +440,16 @@ def create_estimate(auto_estimate_id):
         count = cur.fetchone()[0]
         estimate_number = f'EST-{today}-{count + 1:04d}'
         
-        # 見積もりヘッダーを作成
+        # 見積もりヘッダーを作成（複数明細対応のため、width/heightなどは0を設定）
         cur.execute('''
             INSERT INTO "T_看板見積もり" 
-            ("estimate_number", "customer_name", "tenant_id", "material_id", "created_by", "created_by_role")
-            VALUES (%s, %s, %s, %s, %s, %s)
+            ("estimate_number", "customer_name", "tenant_id", "material_id", "created_by", "created_by_role",
+             "width", "height", "quantity", "area", "weight", "price_type", "unit_price", 
+             "discount_rate", "discounted_unit_price", "subtotal", "tax_rate", "tax_amount", "total_amount")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING "id"
-        ''', (estimate_number, customer_name, tenant_id, None, session.get('user_id'), session.get('role')))
+        ''', (estimate_number, customer_name, tenant_id, None, session.get('user_id'), session.get('role'),
+              0, 0, 0, 0, 0, '', 0, 0, 0, 0, 10, 0, 0))
         
         estimate_id = cur.fetchone()[0]
         
