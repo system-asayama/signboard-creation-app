@@ -17,7 +17,7 @@
         <h3 style="margin-top: 0; margin-bottom: 0.5rem;">設計図をアップロード（AI自動解析）</h3>
         <p style="font-size: 0.9rem; color: #666; margin-bottom: 0.8rem;">設計図をアップロードすると、AIが寸法や材質を自動的に解析して入力します。</p>
         
-        <input type="file" id="blueprintUpload" accept="image/*" style="display: none;" onchange="handleBlueprintUpload(event)" />
+        <input type="file" id="blueprintUpload" accept="image/*" capture="environment" style="display: none;" onchange="handleBlueprintUpload(event)" />
         <button type="button" onclick="document.getElementById('blueprintUpload').click()" class="btn" style="background: #007bff; color: white;">
           📷 設計図を選択
         </button>
