@@ -443,10 +443,10 @@ def create_estimate(auto_estimate_id):
         # 見積もりヘッダーを作成
         cur.execute('''
             INSERT INTO "T_看板見積もり" 
-            ("estimate_number", "customer_name", "tenant_id", "material_id")
-            VALUES (%s, %s, %s, %s)
+            ("estimate_number", "customer_name", "tenant_id", "material_id", "created_by", "created_by_role")
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING "id"
-        ''', (estimate_number, customer_name, tenant_id, None))
+        ''', (estimate_number, customer_name, tenant_id, None, session.get('user_id'), session.get('role')))
         
         estimate_id = cur.fetchone()[0]
         
