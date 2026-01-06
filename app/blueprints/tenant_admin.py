@@ -2019,7 +2019,7 @@ def app_management():
                             app_setting = db.query(TTenpoAppSetting).filter(
                                 and_(
                                     TTenpoAppSetting.store_id == selected_store_id,
-                                    TTenpoAppSetting.app_name == app['name']
+                                    TTenpoAppSetting.app_id == app['name']
                                 )
                             ).first()
                             enabled = app_setting.enabled if app_setting else 1  # デフォルトは有効
@@ -2073,7 +2073,7 @@ def app_management():
                             app_setting = db.query(TTenpoAppSetting).filter(
                                 and_(
                                     TTenpoAppSetting.store_id == selected_store_id,
-                                    TTenpoAppSetting.app_name == app['name']
+                                    TTenpoAppSetting.app_id == app['name']
                                 )
                             ).first()
                             
@@ -2099,7 +2099,7 @@ def app_management():
                             app_setting = db.query(TTenpoAppSetting).filter(
                                 and_(
                                     TTenpoAppSetting.store_id == selected_store_id,
-                                    TTenpoAppSetting.app_name == app['name']
+                                    TTenpoAppSetting.app_id == app['name']
                                 )
                             ).first()
                             enabled = app_setting.enabled if app_setting else 1
@@ -2176,7 +2176,7 @@ def tenant_apps():
                 app_setting = db.query(TTenantAppSetting).filter(
                     and_(
                         TTenantAppSetting.tenant_id == tenant_id,
-                        TTenantAppSetting.app_name == app['name']
+                        TTenantAppSetting.app_id == app['name']
                     )
                 ).first()
                 enabled = app_setting.enabled if app_setting else 1
@@ -2991,7 +2991,7 @@ def store_apps(store_id):
                 app_setting = db.query(TTenpoAppSetting).filter(
                     and_(
                         TTenpoAppSetting.store_id == store_id,
-                        TTenpoAppSetting.app_name == app['name']
+                        TTenpoAppSetting.app_id == app['name']
                     )
                 ).first()
                 enabled = app_setting.enabled if app_setting else 1
