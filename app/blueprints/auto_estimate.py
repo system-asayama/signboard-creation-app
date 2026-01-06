@@ -183,8 +183,22 @@ def api_analyze(auto_estimate_id):
         if not blueprint_files:
             return jsonify({'error': 'ファイルが見つかりません'}), 404
         
+        # テナントのOpenAI APIキーを取得
+        cur.execute('''
+            SELECT "openai_api_key"
+            FROM "T_テナント"
+            WHERE "id" = %s
+        ''', (tenant_id,))
+        
+        tenant_data = cur.fetchone()
+        
+        if not tenant_data or not tenant_data[0]:
+            return jsonify({'error': 'OpenAI APIキーが設定されていません。テナント情報から設定してください。'}), 400
+        
+        openai_api_key = tenant_data[0]
+        
         # OpenAI APIで解析
-        client = OpenAI()
+        client = OpenAI(api_key=openai_api_key)
         
         all_items = []
         
