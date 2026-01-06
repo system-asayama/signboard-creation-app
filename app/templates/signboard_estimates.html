@@ -4,10 +4,95 @@
 {% block header %}看板見積もり一覧{% endblock %}
 
 {% block content %}
+<style>
+  /* スマホ対応のスタイル */
+  @media (max-width: 768px) {
+    .desktop-table {
+      display: none;
+    }
+    .mobile-cards {
+      display: block;
+    }
+    .header-buttons {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .header-buttons a {
+      width: 100%;
+      text-align: center;
+    }
+  }
+  
+  @media (min-width: 769px) {
+    .desktop-table {
+      display: table;
+    }
+    .mobile-cards {
+      display: none;
+    }
+  }
+  
+  .estimate-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+  }
+  
+  .estimate-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .estimate-number {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #333;
+  }
+  
+  .estimate-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
+  
+  .estimate-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .estimate-row {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .estimate-label {
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  .estimate-value {
+    font-weight: 500;
+    text-align: right;
+  }
+  
+  .estimate-actions {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #eee;
+  }
+</style>
+
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
     <h2 style="margin: 0;">見積もり一覧</h2>
-    <div>
+    <div class="header-buttons" style="display: flex; gap: 0.5rem;">
       {% if session.get('role') == 'tenant_admin' %}
       <a href="{{ url_for('signboard.materials') }}" class="btn">材質Master</a>
       {% endif %}
@@ -16,46 +101,97 @@
   </div>
 
   {% if estimates %}
-  <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-    <thead>
-      <tr style="border-bottom: 2px solid #333;">
-        <th style="padding: 0.75rem; text-align: left;">見積もり番号</th>
-        <th style="padding: 0.75rem; text-align: left;">顧客名</th>
-        <th style="padding: 0.75rem; text-align: left;">材質</th>
-        <th style="padding: 0.75rem; text-align: right;">サイズ</th>
-        <th style="padding: 0.75rem; text-align: right;">数量</th>
-        <th style="padding: 0.75rem; text-align: right;">合計金額</th>
-        <th style="padding: 0.75rem; text-align: center;">ステータス</th>
-        <th style="padding: 0.75rem; text-align: center;">操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for est in estimates %}
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 0.75rem;">{{ est[1] }}</td>
-        <td style="padding: 0.75rem;">{{ est[2] or '-' }}</td>
-        <td style="padding: 0.75rem;">{{ est[9] }}</td>
-        <td style="padding: 0.75rem; text-align: right;">{{ est[3]|int }}×{{ est[4]|int }}mm</td>
-        <td style="padding: 0.75rem; text-align: right;">{{ est[5] }}</td>
-        <td style="padding: 0.75rem; text-align: right;">¥{{ "{:,}".format(est[6]|int) }}</td>
-        <td style="padding: 0.75rem; text-align: center;">
-          {% if est[7] == 'draft' %}
-          <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">下書き</span>
-          {% elif est[7] == 'sent' %}
-          <span style="background: #fff3e0; color: #e65100; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">送信済</span>
-          {% elif est[7] == 'approved' %}
-          <span style="background: #e8f5e9; color: #2e7d32; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">承認済</span>
-          {% elif est[7] == 'rejected' %}
-          <span style="background: #ffebee; color: #c62828; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">却下</span>
+  <!-- デスクトップ用テーブル -->
+  <div style="overflow-x: auto;">
+    <table class="desktop-table" style="width: 100%; border-collapse: collapse; margin-top: 1rem; min-width: 800px;">
+      <thead>
+        <tr style="border-bottom: 2px solid #333;">
+          <th style="padding: 0.75rem; text-align: left;">見積もり番号</th>
+          <th style="padding: 0.75rem; text-align: left;">顧客名</th>
+          <th style="padding: 0.75rem; text-align: left;">材質</th>
+          <th style="padding: 0.75rem; text-align: right;">サイズ</th>
+          <th style="padding: 0.75rem; text-align: right;">数量</th>
+          <th style="padding: 0.75rem; text-align: right;">合計金額</th>
+          <th style="padding: 0.75rem; text-align: center;">ステータス</th>
+          <th style="padding: 0.75rem; text-align: center;">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for est in estimates %}
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 0.75rem;">{{ est[1] }}</td>
+          <td style="padding: 0.75rem;">{{ est[2] or '-' }}</td>
+          <td style="padding: 0.75rem;">{{ est[9] }}</td>
+          <td style="padding: 0.75rem; text-align: right;">{{ est[3]|int }}×{{ est[4]|int }}mm</td>
+          <td style="padding: 0.75rem; text-align: right;">{{ est[5] }}</td>
+          <td style="padding: 0.75rem; text-align: right;">¥{{ "{:,}".format(est[6]|int) }}</td>
+          <td style="padding: 0.75rem; text-align: center;">
+            {% if est[7] == 'draft' %}
+            <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">下書き</span>
+            {% elif est[7] == 'sent' %}
+            <span style="background: #fff3e0; color: #e65100; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">送信済</span>
+            {% elif est[7] == 'approved' %}
+            <span style="background: #e8f5e9; color: #2e7d32; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">承認済</span>
+            {% elif est[7] == 'rejected' %}
+            <span style="background: #ffebee; color: #c62828; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">却下</span>
+            {% endif %}
+          </td>
+          <td style="padding: 0.75rem; text-align: center;">
+            <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn btn-link">詳細</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- スマホ用カード表示 -->
+  <div class="mobile-cards">
+    {% for est in estimates %}
+    <div class="estimate-card">
+      <div class="estimate-card-header">
+        <div class="estimate-number">{{ est[1] }}</div>
+        <div class="estimate-status" style="
+          {% if est[7] == 'draft' %}background: #e3f2fd; color: #1565c0;
+          {% elif est[7] == 'sent' %}background: #fff3e0; color: #e65100;
+          {% elif est[7] == 'approved' %}background: #e8f5e9; color: #2e7d32;
+          {% elif est[7] == 'rejected' %}background: #ffebee; color: #c62828;
+          {% endif %}">
+          {% if est[7] == 'draft' %}下書き
+          {% elif est[7] == 'sent' %}送信済
+          {% elif est[7] == 'approved' %}承認済
+          {% elif est[7] == 'rejected' %}却下
           {% endif %}
-        </td>
-        <td style="padding: 0.75rem; text-align: center;">
-          <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn btn-link">詳細</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </div>
+      </div>
+      <div class="estimate-card-body">
+        <div class="estimate-row">
+          <span class="estimate-label">顧客名</span>
+          <span class="estimate-value">{{ est[2] or '-' }}</span>
+        </div>
+        <div class="estimate-row">
+          <span class="estimate-label">材質</span>
+          <span class="estimate-value">{{ est[9] }}</span>
+        </div>
+        <div class="estimate-row">
+          <span class="estimate-label">サイズ</span>
+          <span class="estimate-value">{{ est[3]|int }}×{{ est[4]|int }}mm</span>
+        </div>
+        <div class="estimate-row">
+          <span class="estimate-label">数量</span>
+          <span class="estimate-value">{{ est[5] }}</span>
+        </div>
+        <div class="estimate-row">
+          <span class="estimate-label">合計金額</span>
+          <span class="estimate-value" style="font-size: 1.1rem; color: #2e7d32;">¥{{ "{:,}".format(est[6]|int) }}</span>
+        </div>
+      </div>
+      <div class="estimate-actions">
+        <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn btn-primary" style="width: 100%; text-align: center;">詳細を見る</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% else %}
   <p style="text-align: center; color: #666; padding: 2rem;">見積もりがありません</p>
   {% endif %}
