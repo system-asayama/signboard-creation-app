@@ -81,7 +81,7 @@ def require_app_enabled(app_name):
                 # 店舗単位のアプリ設定をチェック
                 cur.execute(_sql(conn, '''
                     SELECT enabled FROM "T_店舗アプリ設定"
-                    WHERE store_id = %s AND app_id = %s
+                    WHERE store_id = %s AND app_name = %s
                 '''), (store_id, app_name))
                 row = cur.fetchone()
                 enabled = row[0] if row else True  # デフォルトは有効
@@ -89,7 +89,7 @@ def require_app_enabled(app_name):
                 # テナント単位のアプリ設定をチェック
                 cur.execute(_sql(conn, '''
                     SELECT enabled FROM "T_テナントアプリ設定"
-                    WHERE tenant_id = %s AND app_id = %s
+                    WHERE tenant_id = %s AND app_name = %s
                 '''), (tenant_id, app_name))
                 row = cur.fetchone()
                 enabled = row[0] if row else True  # デフォルトは有効
