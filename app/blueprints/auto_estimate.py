@@ -434,7 +434,7 @@ def create_estimate(auto_estimate_id):
         
         cur.execute('''
             SELECT COUNT(*) FROM "T_看板見積もり"
-            WHERE "見積もり番号" LIKE %s
+            WHERE "estimate_number" LIKE %s
         ''', (f'EST-{today}-%',))
         
         count = cur.fetchone()[0]
@@ -443,7 +443,7 @@ def create_estimate(auto_estimate_id):
         # 見積もりヘッダーを作成
         cur.execute('''
             INSERT INTO "T_看板見積もり" 
-            ("見積もり番号", "顧客名", "テナントID", "material_id")
+            ("estimate_number", "customer_name", "tenant_id", "material_id")
             VALUES (%s, %s, %s, %s)
             RETURNING "id"
         ''', (estimate_number, customer_name, tenant_id, None))
@@ -456,9 +456,9 @@ def create_estimate(auto_estimate_id):
             
             # 材質名から材質IDを取得
             cur.execute('''
-                SELECT "id", "単価タイプ", "単価", "比重"
+                SELECT "id", "price_type", "unit_price_area", "unit_price_weight", "specific_gravity"
                 FROM "T_材質"
-                WHERE "材質名" = %s AND "テナントID" = %s
+                WHERE "name" = %s AND "tenant_id" = %s
                 LIMIT 1
             ''', (material_name, tenant_id))
             
@@ -467,9 +467,9 @@ def create_estimate(auto_estimate_id):
             if not material:
                 # 材質が見つからない場合はデフォルトの材質を使用
                 cur.execute('''
-                    SELECT "id", "単価タイプ", "単価", "比重"
+                    SELECT "id", "price_type", "unit_price_area", "unit_price_weight", "specific_gravity"
                     FROM "T_材質"
-                    WHERE "テナントID" = %s
+                    WHERE "tenant_id" = %s
                     ORDER BY "id"
                     LIMIT 1
                 ''', (tenant_id,))
@@ -477,7 +477,13 @@ def create_estimate(auto_estimate_id):
                 material = cur.fetchone()
             
             if material:
-                material_id, price_type, unit_price, density = material
+                material_id, price_type, unit_price_area, unit_price_weight, density = material
+                
+                # 単価を選択
+                if price_type == '面積単価':
+                    unit_price = unit_price_area
+                else:  # 重量単価
+                    unit_price = unit_price_weight
                 
                 # 面積計算（mm² → ㎡）
                 area = (width * height) / 1000000
