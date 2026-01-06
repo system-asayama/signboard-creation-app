@@ -2,7 +2,7 @@
 看板見積もり機能のBlueprint
 """
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
-from app.utils.decorators import require_roles
+from app.utils.decorators import require_roles, require_app_enabled
 from app.utils.db import get_db, _sql
 from datetime import datetime
 import math
@@ -143,6 +143,7 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
 
 
 @bp.route('/')
+@require_app_enabled('signboard')
 @require_roles(['tenant_admin', 'admin'])
 def index():
     """見積もり一覧"""
@@ -183,6 +184,7 @@ def index():
 
 
 @bp.route('/materials')
+@require_app_enabled('signboard')
 @require_roles(['tenant_admin'])
 def materials():
     """材質マスタ一覧"""
@@ -204,6 +206,7 @@ def materials():
 
 
 @bp.route('/materials/new', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
 @require_roles(['tenant_admin'])
 def material_new():
     """材質マスタ新規登録"""
@@ -243,6 +246,7 @@ def material_new():
 
 
 @bp.route('/materials/<int:material_id>/edit', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
 @require_roles(['tenant_admin'])
 def material_edit(material_id):
     """材質マスタ編集"""
@@ -297,6 +301,7 @@ def material_edit(material_id):
 
 
 @bp.route('/new', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
 @require_roles(['tenant_admin', 'admin'])
 def estimate_new():
     """見積もり新規作成"""
@@ -364,6 +369,7 @@ def estimate_new():
 
 
 @bp.route('/<int:estimate_id>')
+@require_app_enabled('signboard')
 @require_roles(['tenant_admin', 'admin'])
 def estimate_detail(estimate_id):
     """見積もり詳細"""
@@ -410,6 +416,7 @@ def estimate_detail(estimate_id):
 
 
 @bp.route('/api/calculate', methods=['POST'])
+@require_app_enabled('signboard')
 @require_roles(['tenant_admin', 'admin'])
 def api_calculate():
     """見積もり金額をAPIで計算"""

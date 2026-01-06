@@ -1897,7 +1897,17 @@ def employee_new():
 # 利用可能なアプリ一覧（現在は空）
 # 将来的にアプリを追加する場合は、以下の形式で追加してください：
 # {'name': 'app-name', 'display_name': 'アプリ表示名', 'scope': 'store'/'tenant'}
-AVAILABLE_APPS = []
+AVAILABLE_APPS = [
+    {
+        'name': 'signboard',
+        'display_name': '看板見積もり',
+        'description': '看板のサイズと材質で見積もりを作成・管理します。',
+        'scope': 'tenant',
+        'url': 'signboard.index',
+        'icon': 'fas fa-sign',
+        'color': 'bg-primary'
+    }
+]
 
 
 @bp.route('/app_management', methods=['GET', 'POST'])
