@@ -497,15 +497,20 @@ def create_estimate(auto_estimate_id):
             
             material_id, price_type, unit_price_area, unit_price_weight, density = material
             
+            # デバッグログ
+            print(f'DEBUG: 材質情報 - ID:{material_id}, 名前:{material_name}, 単価タイプ:{price_type}, 面積単価:{unit_price_area}, 重量単価:{unit_price_weight}, 比重:{density}')
+            
             # 単価を選択
             if price_type == '面積単価':
                 unit_price = unit_price_area or 0
             else:  # 重量単価
                 unit_price = unit_price_weight or 0
             
+            print(f'DEBUG: 選択された単価: {unit_price}')
+            
             if unit_price is None or unit_price == 0:
                 conn.rollback()
-                flash(f'材質「{material_name}」の単価が設定されていません。', 'error')
+                flash(f'材質「{material_name}」の単価が設定されていません。(単価タイプ:{price_type}, 面積単価:{unit_price_area}, 重量単価:{unit_price_weight})', 'error')
                 return redirect(url_for('auto_estimate.confirm', auto_estimate_id=auto_estimate_id))
             
             # 面積計算（mm² → ㎡）
