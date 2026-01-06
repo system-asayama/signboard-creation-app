@@ -3,7 +3,6 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from .db import Base
-from .models_login import TTenant as Tenant
 
 
 class Material(Base):
@@ -36,7 +35,7 @@ class Material(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     
     # リレーション
-    tenant = relationship("Tenant", foreign_keys=[tenant_id])
+    tenant = relationship("TTenant", foreign_keys=[tenant_id])
     estimates = relationship("SignboardEstimate", back_populates="material")
     volume_discounts = relationship("MaterialVolumeDiscount", back_populates="material", order_by="MaterialVolumeDiscount.min_quantity")
 
@@ -106,5 +105,5 @@ class SignboardEstimate(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     
     # リレーション
-    tenant = relationship("Tenant", foreign_keys=[tenant_id])
+    tenant = relationship("TTenant", foreign_keys=[tenant_id])
     material = relationship("Material", back_populates="estimates")
