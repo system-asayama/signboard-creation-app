@@ -17,16 +17,27 @@
         <h3 style="margin-top: 0; margin-bottom: 0.5rem;">設計図をアップロード（AI自動解析）</h3>
         <p style="font-size: 0.9rem; color: #666; margin-bottom: 0.8rem;">設計図をアップロードすると、AIが寸法や材質を自動的に解析して入力します。</p>
         
-        <input type="file" id="blueprintCamera" accept="image/*" capture="environment" style="display: none;" onchange="handleBlueprintUpload(event)" />
-        <input type="file" id="blueprintGallery" accept="image/*" style="display: none;" onchange="handleBlueprintUpload(event)" />
+        <input type="file" id="blueprintCamera" accept="image/*" capture="environment" style="display: none;" onchange="handleBlueprintUpload(event, 'camera')" />
+        <input type="file" id="blueprintGallery" accept="image/*,application/pdf" multiple style="display: none;" onchange="handleBlueprintUpload(event, 'gallery')" />
         
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button type="button" onclick="document.getElementById('blueprintCamera').click()" class="btn" style="background: #007bff; color: white;">
             📷 カメラで撮影
           </button>
           <button type="button" onclick="document.getElementById('blueprintGallery').click()" class="btn" style="background: #28a745; color: white;">
-            🖼️ ギャラリーから選択
+            🖼️ ファイルを選択（複数可、PDF対応）
           </button>
+        </div>
+        
+        <div style="margin-top: 0.8rem;">
+          <label style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem;">
+            <input type="radio" name="uploadMode" value="replace" checked>
+            <span>置き換え（既存の明細をクリア）</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; margin-top: 0.3rem;">
+            <input type="radio" name="uploadMode" value="append">
+            <span>追加（既存の明細に追加）</span>
+          </label>
         </div>
         
         <div id="uploadStatus" style="margin-top: 0.8rem; display: none;">
@@ -245,21 +256,33 @@ function updateTotalPreview() {
 }
 
 // 設計図アップロード処理
-function handleBlueprintUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+function handleBlueprintUpload(event, source) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
   
-  // プレビュー表示
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('previewImage').src = e.target.result;
-    document.getElementById('blueprintPreview').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
+  // プレビュー表示（最初のファイルのみ）
+  if (files[0].type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('previewImage').src = e.target.result;
+      document.getElementById('blueprintPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(files[0]);
+  } else {
+    document.getElementById('blueprintPreview').style.display = 'none';
+  }
   
   // アップロードとAI解析
   const formData = new FormData();
-  formData.append('image', file);
+  
+  // 複数ファイルをすべて追加
+  for (let i = 0; i < files.length; i++) {
+    formData.append('files', files[i]);
+  }
+  
+  // アップロードモードを取得
+  const uploadMode = document.querySelector('input[name="uploadMode"]:checked').value;
+  formData.append('mode', uploadMode);
   
   // プログレス表示
   document.getElementById('uploadStatus').style.display = 'block';
@@ -287,7 +310,8 @@ function handleBlueprintUpload(event) {
       document.getElementById('uploadResult').style.display = 'block';
       
       // 解析結果をフォームに入力
-      applyAnalysisResult(result.data);
+      const uploadMode = document.querySelector('input[name="uploadMode"]:checked').value;
+      applyAnalysisResult(result.data, uploadMode);
     } else {
       document.getElementById('uploadResult').innerHTML = `
         <div style="padding: 0.8rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">
@@ -312,9 +336,9 @@ function handleBlueprintUpload(event) {
   });
 }
 
-function applyAnalysisResult(data) {
-  // 顧客名を入力
-  if (data.customer_name) {
+function applyAnalysisResult(data, mode) {
+  // 顧客名を入力（置き換えモードのみ）
+  if (mode === 'replace' && data.customer_name) {
     document.getElementById('customer_name').value = data.customer_name;
   }
   
@@ -323,9 +347,11 @@ function applyAnalysisResult(data) {
     return;
   }
   
-  // 既存の明細をすべて削除
-  const existingItems = document.querySelectorAll('.item-row');
-  existingItems.forEach(item => item.remove());
+  // 置き換えモードの場合のみ既存の明細を削除
+  if (mode === 'replace') {
+    const existingItems = document.querySelectorAll('.item-row');
+    existingItems.forEach(item => item.remove());
+  }
   
   // 各解析結果に対して明細を追加
   data.items.forEach((item, index) => {

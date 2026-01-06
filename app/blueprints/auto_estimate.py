@@ -168,28 +168,24 @@ def analyze(auto_estimate_id):
 @require_app_enabled('signboard')
 @require_roles('tenant_admin', 'admin')
 def analyze_image():
-    """画像直接アップロードでAI解析（新規見積もり画面用）"""
+    """画像/PDF直接アップロードでAI解析（新規見積もり画面用）"""
     from app.utils.db import get_db_connection
+    from pdf2image import convert_from_bytes
+    import io
     
     tenant_id = session.get('tenant_id')
     if not tenant_id:
         return jsonify({'success': False, 'error': 'ログインが必要です'}), 401
     
-    # 画像ファイルを取得
-    if 'image' not in request.files:
-        return jsonify({'success': False, 'error': '画像ファイルがありません'}), 400
+    # ファイルを取得
+    if 'files' not in request.files:
+        return jsonify({'success': False, 'error': 'ファイルがありません'}), 400
     
-    file = request.files['image']
-    if file.filename == '':
+    files = request.files.getlist('files')
+    if not files or len(files) == 0:
         return jsonify({'success': False, 'error': 'ファイルが選択されていません'}), 400
     
     try:
-        # 画像をBase64エンコード
-        image_data = base64.b64encode(file.read()).decode('utf-8')
-        
-        # ファイルタイプを取得
-        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpeg'
-        
         # OpenAIクライアントを取得
         from app.utils.api_key import get_openai_client
         client = get_openai_client(tenant_id=tenant_id, app_name='signboard')
@@ -197,6 +193,63 @@ def analyze_image():
         if not client:
             return jsonify({'success': False, 'error': 'OpenAI APIキーが設定されていません。'}), 400
         
+        all_items = []
+        customer_name = None
+        
+        # 各ファイルを処理
+        for file in files:
+            if file.filename == '':
+                continue
+            
+            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpeg'
+            file_content = file.read()
+            
+            # PDFの場合は画像に変換
+            if file_ext == 'pdf':
+                try:
+                    images = convert_from_bytes(file_content)
+                    for page_num, image in enumerate(images):
+                        # PIL ImageをBase64に変換
+                        buffered = io.BytesIO()
+                        image.save(buffered, format="PNG")
+                        image_data = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                        
+                        # AI解析を実行
+                        result = analyze_single_image(client, image_data, 'png')
+                        if result:
+                            if not customer_name and result.get('customer_name'):
+                                customer_name = result['customer_name']
+                            all_items.extend(result.get('items', []))
+                except Exception as e:
+                    print(f"PDF変換エラー: {str(e)}")
+                    return jsonify({'success': False, 'error': f'PDF変換に失敗しました: {str(e)}'}), 500
+            else:
+                # 画像ファイルの場合
+                image_data = base64.b64encode(file_content).decode('utf-8')
+                
+                # AI解析を実行
+                result = analyze_single_image(client, image_data, file_ext)
+                if result:
+                    if not customer_name and result.get('customer_name'):
+                        customer_name = result['customer_name']
+                    all_items.extend(result.get('items', []))
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'customer_name': customer_name,
+                'items': all_items
+            }
+        })
+        
+    except Exception as e:
+        print(f"AI解析エラー: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def analyze_single_image(client, image_data, file_ext):
+    """単一画像のAI解析"""
+    try:
         # GPT-4 Visionで解析
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
@@ -250,14 +303,11 @@ def analyze_image():
         
         result_json = json.loads(result_text)
         
-        return jsonify({
-            'success': True,
-            'data': result_json
-        })
+        return result_json
         
     except Exception as e:
         print(f"AI解析エラー: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return None
 
 
 @auto_estimate_bp.route('/api/analyze/<int:auto_estimate_id>', methods=['POST'])
