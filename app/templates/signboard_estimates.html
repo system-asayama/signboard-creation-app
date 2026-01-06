@@ -9,9 +9,8 @@
     <h2 style="margin: 0;">見積もり一覧</h2>
     <div>
       {% if session.get('role') == 'tenant_admin' %}
-      <a href="{{ url_for('signboard.materials') }}" class="btn">材質マスタ</a>
+      <a href="{{ url_for('signboard.materials') }}" class="btn">材質Master</a>
       {% endif %}
-      <a href="{{ url_for('auto_estimate.index') }}" class="btn">自動見積もり</a>
       <a href="{{ url_for('signboard.estimate_new') }}" class="btn btn-primary">新規見積もり</a>
     </div>
   </div>
