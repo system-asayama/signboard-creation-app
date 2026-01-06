@@ -480,37 +480,56 @@ def create_estimate(auto_estimate_id):
                 
                 material = cur.fetchone()
             
-            if material:
-                material_id, price_type, unit_price_area, unit_price_weight, density = material
-                
-                # 単価を選択
-                if price_type == '面積単価':
-                    unit_price = unit_price_area
-                else:  # 重量単価
-                    unit_price = unit_price_weight
-                
-                # 面積計算（mm² → ㎡）
-                area = (width * height) / 1000000
-                
-                # 重量計算（㎡ × 比重）
-                weight = area * (density or 0)
-                
-                # 小計計算
-                if price_type == '面積単価':
-                    subtotal = area * unit_price * quantity
-                else:  # 重量単価
-                    subtotal = weight * unit_price * quantity
-                
-                # 明細を挿入
-                cur.execute('''
-                    INSERT INTO "T_看板見積もり明細"
-                    ("見積もりID", "材質ID", "幅", "高さ", "数量", "面積", "重量", 
-                     "単価タイプ", "単価", "割引率", "割引後単価", "小計")
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (
-                    estimate_id, material_id, width, height, quantity,
-                    area, weight, price_type, unit_price, 0, unit_price, subtotal
-                ))
+            if not material:
+                conn.rollback()
+                return render_template('auto_estimate_confirm.html',
+                    auto_estimate_id=auto_estimate_id,
+                    customer_name=customer_name,
+                    items=items,
+                    materials=materials,
+                    error=f'材質「{material_name}」が見つかりませんでした。材質マスタに登録されている材質名を選択してください。'
+                )
+            
+            material_id, price_type, unit_price_area, unit_price_weight, density = material
+            
+            # 単価を選択
+            if price_type == '面積単価':
+                unit_price = unit_price_area or 0
+            else:  # 重量単価
+                unit_price = unit_price_weight or 0
+            
+            if unit_price is None or unit_price == 0:
+                conn.rollback()
+                return render_template('auto_estimate_confirm.html',
+                    auto_estimate_id=auto_estimate_id,
+                    customer_name=customer_name,
+                    items=items,
+                    materials=materials,
+                    error=f'材質「{material_name}」の単価が設定されていません。'
+                )
+            
+            # 面積計算（mm² → ㎡）
+            area = (width * height) / 1000000
+            
+            # 重量計算（㎡ × 比重）
+            weight = area * (density or 0)
+            
+            # 小計計算
+            if price_type == '面積単価':
+                subtotal = area * unit_price * quantity
+            else:  # 重量単価
+                subtotal = weight * unit_price * quantity
+            
+            # 明細を挿入
+            cur.execute('''
+                INSERT INTO "T_看板見積もり明細"
+                ("見積もりID", "材質ID", "幅", "高さ", "数量", "面積", "重量", 
+                 "単価タイプ", "単価", "割引率", "割引後単価", "小計")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                estimate_id, material_id, width, height, quantity,
+                area, weight, price_type, unit_price, 0, unit_price, subtotal
+            ))
         
         # 自動見積もりのステータスを更新
         cur.execute('''
