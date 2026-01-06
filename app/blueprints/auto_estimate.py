@@ -164,6 +164,102 @@ def analyze(auto_estimate_id):
                          auto_estimate=auto_estimate,
                          blueprint_files=blueprint_files)
 
+@auto_estimate_bp.route('/analyze', methods=['POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def analyze_image():
+    """画像直接アップロードでAI解析（新規見積もり画面用）"""
+    from app.utils.db import get_db_connection
+    
+    tenant_id = session.get('tenant_id')
+    if not tenant_id:
+        return jsonify({'success': False, 'error': 'ログインが必要です'}), 401
+    
+    # 画像ファイルを取得
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'error': '画像ファイルがありません'}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'ファイルが選択されていません'}), 400
+    
+    try:
+        # 画像をBase64エンコード
+        image_data = base64.b64encode(file.read()).decode('utf-8')
+        
+        # ファイルタイプを取得
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpeg'
+        
+        # OpenAIクライアントを取得
+        from app.utils.api_key import get_openai_client
+        client = get_openai_client(tenant_id=tenant_id, app_name='signboard')
+        
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI APIキーが設定されていません。'}), 400
+        
+        # GPT-4 Visionで解析
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": """この設計図から看板の情報を抽出してください。
+                            
+以下の情報をJSON形式で返してください：
+{
+  "customer_name": "顧客名（あれば）",
+  "items": [
+    {
+      "material_name": "材質名（アルミ、鉄骨、アクリルなど）",
+      "width": 幅（mm、数値のみ）,
+      "height": 高さ（mm、数値のみ）,
+      "quantity": 数量（数値のみ）,
+      "description": "備考（あれば）"
+    }
+  ]
+}
+
+- 複数の看板がある場合は、itemsに複数のオブジェクトを含めてください
+- 数値は単位を除いた数字のみを返してください
+- 材質が不明な場合は"不明"としてください
+- 寸法が読み取れない場合は0としてください"""
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/{file_ext};base64,{image_data}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=1000
+        )
+        
+        # レスポンスをパース
+        result_text = response.choices[0].message.content
+        
+        # JSONを抽出（```json ... ```の場合に対応）
+        if '```json' in result_text:
+            result_text = result_text.split('```json')[1].split('```')[0].strip()
+        elif '```' in result_text:
+            result_text = result_text.split('```')[1].split('```')[0].strip()
+        
+        result_json = json.loads(result_text)
+        
+        return jsonify({
+            'success': True,
+            'data': result_json
+        })
+        
+    except Exception as e:
+        print(f"AI解析エラー: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @auto_estimate_bp.route('/api/analyze/<int:auto_estimate_id>', methods=['POST'])
 @require_app_enabled('signboard')
 @require_roles('tenant_admin', 'admin')
