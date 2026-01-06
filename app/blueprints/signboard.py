@@ -445,7 +445,7 @@ def estimate_detail(estimate_id):
             'e."quantity", e."area", e."weight", e."price_type", e."unit_price", '
             'e."discount_rate", e."discounted_unit_price", e."subtotal", e."tax_rate", '
             'e."tax_amount", e."total_amount", e."notes", e."status", e."created_at", '
-            'm."name" as material_name '
+            'm."name" as material_name, e."自動見積もりID" '
             'FROM "T_看板見積もり" e '
             'LEFT JOIN "T_材質" m ON e."material_id" = m."id" '
             'WHERE e."id" = %s AND e."tenant_id" = %s'
@@ -458,7 +458,7 @@ def estimate_detail(estimate_id):
             'e."quantity", e."area", e."weight", e."price_type", e."unit_price", '
             'e."discount_rate", e."discounted_unit_price", e."subtotal", e."tax_rate", '
             'e."tax_amount", e."total_amount", e."notes", e."status", e."created_at", '
-            'm."name" as material_name '
+            'm."name" as material_name, e."自動見積もりID" '
             'FROM "T_看板見積もり" e '
             'LEFT JOIN "T_材質" m ON e."material_id" = m."id" '
             'WHERE e."id" = %s AND e."tenant_id" = %s AND e."store_id" = %s'
@@ -484,9 +484,23 @@ def estimate_detail(estimate_id):
     )
     cur.execute(sql, (estimate_id,))
     items = cur.fetchall()
+    
+    # 自動見積もりIDから画像ファイルを取得
+    blueprint_images = []
+    auto_estimate_id = estimate[20]  # 自動見積もりIDは21番目のカラム
+    if auto_estimate_id:
+        sql = _sql(conn,
+            'SELECT "ファイルID", "ファイル名", "ファイルパス" '
+            'FROM "T_設計図ファイル" '
+            'WHERE "自動見積もりID" = %s '
+            'ORDER BY "ファイルID"'
+        )
+        cur.execute(sql, (auto_estimate_id,))
+        blueprint_images = cur.fetchall()
+    
     conn.close()
     
-    return render_template('signboard_estimate_detail.html', estimate=estimate, items=items)
+    return render_template('signboard_estimate_detail.html', estimate=estimate, items=items, blueprint_images=blueprint_images)
 
 
 @bp.route('/api/calculate', methods=['POST'])

@@ -602,11 +602,11 @@ def create_estimate(auto_estimate_id):
             ("estimate_number", "customer_name", "tenant_id", "material_id", "created_by", "created_by_role",
              "width", "height", "quantity", "area", "weight", "price_type", "unit_price", 
              "discount_rate", "discounted_unit_price", "subtotal", "tax_rate", "tax_amount", "total_amount", 
-             "status", "created_at", "updated_at")
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             "status", "自動見積もりID", "created_at", "updated_at")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING "id"
         ''', (estimate_number, customer_name, tenant_id, None, session.get('user_id'), session.get('role'),
-              0, 0, 0, 0, 0, '', 0, 0, 0, 0, 10, 0, 0, '作成済み'))
+              0, 0, 0, 0, 0, '', 0, 0, 0, 0, 10, 0, 0, '作成済み', auto_estimate_id))
         
         estimate_id = cur.fetchone()[0]
         

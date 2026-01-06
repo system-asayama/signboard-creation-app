@@ -109,6 +109,8 @@ def run_migrations():
             # T_管理者_店舗テーブルにオーナーと管理権限カラムを追加
             ("T_管理者_店舗", "is_owner", "INTEGER DEFAULT 0"),
             ("T_管理者_店舗", "can_manage_admins", "INTEGER DEFAULT 0"),
+            # T_看板見積もりテーブルに自動見積もりIDカラムを追加
+            ("T_看板見積もり", "自動見積もりID", "INTEGER NULL"),
         ]
         
         added_count = 0
