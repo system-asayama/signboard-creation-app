@@ -501,9 +501,9 @@ def create_estimate(auto_estimate_id):
             print(f'DEBUG: 材質情報 - ID:{material_id}, 名前:{material_name}, 単価タイプ:{price_type}, 面積単価:{unit_price_area}, 重量単価:{unit_price_weight}, 比重:{density}')
             
             # 単価を選択
-            if price_type == '面積単価':
+            if price_type == 'area':
                 unit_price = unit_price_area or 0
-            else:  # 重量単価
+            else:  # weight
                 unit_price = unit_price_weight or 0
             
             print(f'DEBUG: 選択された単価: {unit_price}')
@@ -520,9 +520,9 @@ def create_estimate(auto_estimate_id):
             weight = area * (density or 0)
             
             # 小計計算
-            if price_type == '面積単価':
+            if price_type == 'area':
                 subtotal = area * unit_price * quantity
-            else:  # 重量単価
+            else:  # weight
                 subtotal = weight * unit_price * quantity
             
             # 明細を挿入
