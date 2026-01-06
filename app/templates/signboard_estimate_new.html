@@ -13,72 +13,27 @@
       </div>
 
       <div>
-        <label for="material_id">材質 <span style="color: red;">*</span></label>
-        <select id="material_id" name="material_id" required onchange="calculatePrice()">
-          <option value="">選択してください</option>
-          {% for mat in materials %}
-          <option value="{{ mat[0] }}" data-price-type="{{ mat[2] }}">
-            {{ mat[1] }}
-            {% if mat[2] == 'area' %}
-            (面積単価)
-            {% else %}
-            (重量単価)
-            {% endif %}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="grid-2">
-        <div>
-          <label for="width">幅（mm） <span style="color: red;">*</span></label>
-          <input type="number" id="width" name="width" step="0.1" min="0" required onchange="calculatePrice()" placeholder="1000" />
+        <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">明細</h3>
+        <div id="itemsContainer">
+          <!-- 明細行がここに追加される -->
         </div>
-        <div>
-          <label for="height">高さ（mm） <span style="color: red;">*</span></label>
-          <input type="number" id="height" name="height" step="0.1" min="0" required onchange="calculatePrice()" placeholder="600" />
-        </div>
+        <button type="button" onclick="addItem()" class="btn" style="margin-top: 0.5rem;">+ 明細を追加</button>
       </div>
 
-      <div>
-        <label for="quantity">数量 <span style="color: red;">*</span></label>
-        <input type="number" id="quantity" name="quantity" min="1" value="1" required onchange="calculatePrice()" />
-      </div>
-
-      <div id="pricePreview" style="display: none; background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
-        <h3 style="margin-top: 0;">見積もり金額</h3>
+      <div id="totalPreview" style="display: none; background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+        <h3 style="margin-top: 0;">合計金額</h3>
         <table style="width: 100%;">
-          <tr>
-            <td>面積:</td>
-            <td style="text-align: right;"><span id="previewArea">-</span> ㎡</td>
-          </tr>
-          <tr id="previewWeightRow" style="display: none;">
-            <td>重量:</td>
-            <td style="text-align: right;"><span id="previewWeight">-</span> kg</td>
-          </tr>
-          <tr>
-            <td>単価:</td>
-            <td style="text-align: right;">¥<span id="previewUnitPrice">-</span></td>
-          </tr>
-          <tr id="previewDiscountRow" style="display: none;">
-            <td>割引率:</td>
-            <td style="text-align: right;"><span id="previewDiscountRate">-</span>%</td>
-          </tr>
-          <tr id="previewDiscountedPriceRow" style="display: none;">
-            <td>割引後単価:</td>
-            <td style="text-align: right;">¥<span id="previewDiscountedPrice">-</span></td>
-          </tr>
           <tr style="border-top: 1px solid #ddd;">
             <td style="padding-top: 0.5rem;"><strong>小計:</strong></td>
-            <td style="text-align: right; padding-top: 0.5rem;"><strong>¥<span id="previewSubtotal">-</span></strong></td>
+            <td style="text-align: right; padding-top: 0.5rem;"><strong>¥<span id="totalSubtotal">0</span></strong></td>
           </tr>
           <tr>
             <td>消費税（10%）:</td>
-            <td style="text-align: right;">¥<span id="previewTax">-</span></td>
+            <td style="text-align: right;">¥<span id="totalTax">0</span></td>
           </tr>
           <tr style="border-top: 2px solid #333;">
             <td style="padding-top: 0.5rem;"><strong>合計金額:</strong></td>
-            <td style="text-align: right; padding-top: 0.5rem; font-size: 1.2rem;"><strong>¥<span id="previewTotal">-</span></strong></td>
+            <td style="text-align: right; padding-top: 0.5rem; font-size: 1.2rem;"><strong>¥<span id="totalAmount">0</span></strong></td>
           </tr>
         </table>
       </div>
@@ -97,22 +52,97 @@
 </div>
 
 <script>
-let calculateTimeout;
+let itemCounter = 0;
+let materials = {{ materials|tojson }};
 
-function calculatePrice() {
-  clearTimeout(calculateTimeout);
+function addItem() {
+  itemCounter++;
+  const container = document.getElementById('itemsContainer');
   
-  const materialId = document.getElementById('material_id').value;
-  const width = document.getElementById('width').value;
-  const height = document.getElementById('height').value;
-  const quantity = document.getElementById('quantity').value;
+  const itemDiv = document.createElement('div');
+  itemDiv.id = `item-${itemCounter}`;
+  itemDiv.className = 'item-row';
+  itemDiv.style.cssText = 'border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; position: relative;';
+  
+  let materialOptions = '<option value="">選択してください</option>';
+  materials.forEach(mat => {
+    const priceType = mat[2] === 'area' ? '(面積単価)' : '(重量単価)';
+    materialOptions += `<option value="${mat[0]}" data-price-type="${mat[2]}">${mat[1]} ${priceType}</option>`;
+  });
+  
+  itemDiv.innerHTML = `
+    <button type="button" onclick="removeItem(${itemCounter})" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #dc3545; color: white; border: none; border-radius: 4px; padding: 0.3rem 0.6rem; cursor: pointer;">削除</button>
+    
+    <div style="margin-bottom: 0.5rem;">
+      <label>材質 <span style="color: red;">*</span></label>
+      <select name="items[${itemCounter}][material_id]" required onchange="calculateItemPrice(${itemCounter})">
+        ${materialOptions}
+      </select>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <div>
+        <label>幅（mm） <span style="color: red;">*</span></label>
+        <input type="number" name="items[${itemCounter}][width]" step="0.1" min="0" required onchange="calculateItemPrice(${itemCounter})" placeholder="1000" />
+      </div>
+      <div>
+        <label>高さ（mm） <span style="color: red;">*</span></label>
+        <input type="number" name="items[${itemCounter}][height]" step="0.1" min="0" required onchange="calculateItemPrice(${itemCounter})" placeholder="600" />
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 0.5rem;">
+      <label>数量 <span style="color: red;">*</span></label>
+      <input type="number" name="items[${itemCounter}][quantity]" min="1" value="1" required onchange="calculateItemPrice(${itemCounter})" />
+    </div>
+    
+    <div id="itemPreview-${itemCounter}" style="display: none; background: #e9ecef; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>面積: <span id="itemArea-${itemCounter}">-</span> ㎡</span>
+        <span id="itemWeight-${itemCounter}" style="display: none;">重量: <span id="itemWeightValue-${itemCounter}">-</span> kg</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 0.3rem;">
+        <span>単価: ¥<span id="itemUnitPrice-${itemCounter}">-</span></span>
+        <strong>小計: ¥<span id="itemSubtotal-${itemCounter}">-</span></strong>
+      </div>
+    </div>
+  `;
+  
+  container.appendChild(itemDiv);
+  updateTotalPreview();
+}
+
+function removeItem(itemId) {
+  const itemDiv = document.getElementById(`item-${itemId}`);
+  if (itemDiv) {
+    itemDiv.remove();
+    updateTotalPreview();
+  }
+}
+
+let calculateTimeouts = {};
+
+function calculateItemPrice(itemId) {
+  clearTimeout(calculateTimeouts[itemId]);
+  
+  const itemDiv = document.getElementById(`item-${itemId}`);
+  const materialSelect = itemDiv.querySelector(`select[name="items[${itemId}][material_id]"]`);
+  const widthInput = itemDiv.querySelector(`input[name="items[${itemId}][width]"]`);
+  const heightInput = itemDiv.querySelector(`input[name="items[${itemId}][height]"]`);
+  const quantityInput = itemDiv.querySelector(`input[name="items[${itemId}][quantity]"]`);
+  
+  const materialId = materialSelect.value;
+  const width = widthInput.value;
+  const height = heightInput.value;
+  const quantity = quantityInput.value;
   
   if (!materialId || !width || !height || !quantity) {
-    document.getElementById('pricePreview').style.display = 'none';
+    document.getElementById(`itemPreview-${itemId}`).style.display = 'none';
+    updateTotalPreview();
     return;
   }
   
-  calculateTimeout = setTimeout(() => {
+  calculateTimeouts[itemId] = setTimeout(() => {
     fetch('{{ url_for("signboard.api_calculate") }}', {
       method: 'POST',
       headers: {
@@ -130,32 +160,20 @@ function calculatePrice() {
       if (result.success) {
         const data = result.data;
         
-        document.getElementById('previewArea').textContent = data.area.toFixed(4);
-        document.getElementById('previewUnitPrice').textContent = data.unit_price.toLocaleString();
-        document.getElementById('previewSubtotal').textContent = data.subtotal.toLocaleString();
-        document.getElementById('previewTax').textContent = data.tax_amount.toLocaleString();
-        document.getElementById('previewTotal').textContent = data.total_amount.toLocaleString();
+        document.getElementById(`itemArea-${itemId}`).textContent = data.area.toFixed(4);
+        document.getElementById(`itemUnitPrice-${itemId}`).textContent = data.unit_price.toLocaleString();
+        document.getElementById(`itemSubtotal-${itemId}`).textContent = data.subtotal.toLocaleString();
         
         // 重量表示
         if (data.weight !== null) {
-          document.getElementById('previewWeight').textContent = data.weight.toFixed(2);
-          document.getElementById('previewWeightRow').style.display = 'table-row';
+          document.getElementById(`itemWeightValue-${itemId}`).textContent = data.weight.toFixed(2);
+          document.getElementById(`itemWeight-${itemId}`).style.display = 'inline';
         } else {
-          document.getElementById('previewWeightRow').style.display = 'none';
+          document.getElementById(`itemWeight-${itemId}`).style.display = 'none';
         }
         
-        // 割引表示
-        if (data.discount_rate > 0) {
-          document.getElementById('previewDiscountRate').textContent = data.discount_rate.toFixed(2);
-          document.getElementById('previewDiscountedPrice').textContent = data.discounted_unit_price.toLocaleString();
-          document.getElementById('previewDiscountRow').style.display = 'table-row';
-          document.getElementById('previewDiscountedPriceRow').style.display = 'table-row';
-        } else {
-          document.getElementById('previewDiscountRow').style.display = 'none';
-          document.getElementById('previewDiscountedPriceRow').style.display = 'none';
-        }
-        
-        document.getElementById('pricePreview').style.display = 'block';
+        document.getElementById(`itemPreview-${itemId}`).style.display = 'block';
+        updateTotalPreview();
       } else {
         alert('計算エラー: ' + result.error);
       }
@@ -165,5 +183,38 @@ function calculatePrice() {
     });
   }, 500);
 }
+
+function updateTotalPreview() {
+  let totalSubtotal = 0;
+  let hasItems = false;
+  
+  document.querySelectorAll('.item-row').forEach(itemDiv => {
+    const subtotalSpan = itemDiv.querySelector('[id^="itemSubtotal-"]');
+    if (subtotalSpan && subtotalSpan.textContent !== '-') {
+      const subtotal = parseFloat(subtotalSpan.textContent.replace(/,/g, ''));
+      if (!isNaN(subtotal)) {
+        totalSubtotal += subtotal;
+        hasItems = true;
+      }
+    }
+  });
+  
+  if (hasItems) {
+    const totalTax = Math.floor(totalSubtotal * 0.1);
+    const totalAmount = totalSubtotal + totalTax;
+    
+    document.getElementById('totalSubtotal').textContent = totalSubtotal.toLocaleString();
+    document.getElementById('totalTax').textContent = totalTax.toLocaleString();
+    document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
+    document.getElementById('totalPreview').style.display = 'block';
+  } else {
+    document.getElementById('totalPreview').style.display = 'none';
+  }
+}
+
+// 初期明細を1つ追加
+document.addEventListener('DOMContentLoaded', function() {
+  addItem();
+});
 </script>
 {% endblock %}

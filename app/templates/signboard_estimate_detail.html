@@ -40,66 +40,77 @@
     </div>
 
     <div>
-      <h3 style="border-bottom: 2px solid #333; padding-bottom: 0.5rem;">看板仕様</h3>
-      <table style="width: 100%; margin-top: 1rem;">
-        <tr>
-          <td style="padding: 0.5rem 0; width: 30%; color: #666;">材質:</td>
-          <td style="padding: 0.5rem 0;"><strong>{{ estimate[19] }}</strong></td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 0; color: #666;">サイズ:</td>
-          <td style="padding: 0.5rem 0;">幅 {{ estimate[3]|int }} mm × 高さ {{ estimate[4]|int }} mm</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 0; color: #666;">面積:</td>
-          <td style="padding: 0.5rem 0;">{{ "%.4f"|format(estimate[6]) }} ㎡</td>
-        </tr>
-        {% if estimate[7] %}
-        <tr>
-          <td style="padding: 0.5rem 0; color: #666;">重量:</td>
-          <td style="padding: 0.5rem 0;">{{ "%.2f"|format(estimate[7]) }} kg</td>
-        </tr>
-        {% endif %}
-        <tr>
-          <td style="padding: 0.5rem 0; color: #666;">数量:</td>
-          <td style="padding: 0.5rem 0;">{{ estimate[5] }}</td>
-        </tr>
-      </table>
+      <h3 style="border-bottom: 2px solid #333; padding-bottom: 0.5rem;">明細</h3>
+      {% if items %}
+      <div style="margin-top: 1rem;">
+        {% for item in items %}
+        <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background: #f9f9f9;">
+          <h4 style="margin: 0 0 0.5rem 0; color: #333;">{{ item[12] }}</h4>
+          <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+              <td style="padding: 0.3rem 0; width: 40%; color: #666;">サイズ:</td>
+              <td style="padding: 0.3rem 0;">幅 {{ item[2]|int }} mm × 高さ {{ item[3]|int }} mm</td>
+            </tr>
+            <tr>
+              <td style="padding: 0.3rem 0; color: #666;">面積:</td>
+              <td style="padding: 0.3rem 0;">{{ "%.4f"|format(item[5]) }} ㎡</td>
+            </tr>
+            {% if item[6] %}
+            <tr>
+              <td style="padding: 0.3rem 0; color: #666;">重量:</td>
+              <td style="padding: 0.3rem 0;">{{ "%.2f"|format(item[6]) }} kg</td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td style="padding: 0.3rem 0; color: #666;">数量:</td>
+              <td style="padding: 0.3rem 0;">{{ item[4] }}</td>
+            </tr>
+            <tr>
+              <td style="padding: 0.3rem 0; color: #666;">単価:</td>
+              <td style="padding: 0.3rem 0;">
+                ¥{{ "{:,}".format(item[8]|int) }}
+                {% if item[7] == 'area' %}
+                / ㎡
+                {% else %}
+                / kg
+                {% endif %}
+              </td>
+            </tr>
+            {% if item[9] > 0 %}
+            <tr>
+              <td style="padding: 0.3rem 0; color: #666;">割引率:</td>
+              <td style="padding: 0.3rem 0; color: #d32f2f;">{{ "%.2f"|format(item[9]) }}%</td>
+            </tr>
+            <tr>
+              <td style="padding: 0.3rem 0; color: #666;">割引後単価:</td>
+              <td style="padding: 0.3rem 0;">
+                ¥{{ "{:,}".format(item[10]|int) }}
+                {% if item[7] == 'area' %}
+                / ㎡
+                {% else %}
+                / kg
+                {% endif %}
+              </td>
+            </tr>
+            {% endif %}
+            <tr style="border-top: 1px solid #ccc;">
+              <td style="padding: 0.5rem 0;"><strong>小計:</strong></td>
+              <td style="padding: 0.5rem 0;"><strong>¥{{ "{:,}".format(item[11]|int) }}</strong></td>
+            </tr>
+          </table>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="margin-top: 1rem; color: #999;">明細がありません</p>
+      {% endif %}
     </div>
 
     <div>
-      <h3 style="border-bottom: 2px solid #333; padding-bottom: 0.5rem;">金額</h3>
+      <h3 style="border-bottom: 2px solid #333; padding-bottom: 0.5rem;">合計金額</h3>
       <table style="width: 100%; margin-top: 1rem;">
-        <tr>
-          <td style="padding: 0.5rem 0; width: 30%; color: #666;">単価:</td>
-          <td style="padding: 0.5rem 0; text-align: right;">
-            ¥{{ "{:,}".format(estimate[9]|int) }}
-            {% if estimate[8] == 'area' %}
-            / ㎡
-            {% else %}
-            / kg
-            {% endif %}
-          </td>
-        </tr>
-        {% if estimate[10] > 0 %}
-        <tr>
-          <td style="padding: 0.5rem 0; color: #666;">割引率:</td>
-          <td style="padding: 0.5rem 0; text-align: right; color: #d32f2f;">{{ "%.2f"|format(estimate[10]) }}%</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 0; color: #666;">割引後単価:</td>
-          <td style="padding: 0.5rem 0; text-align: right;">
-            ¥{{ "{:,}".format(estimate[11]|int) }}
-            {% if estimate[8] == 'area' %}
-            / ㎡
-            {% else %}
-            / kg
-            {% endif %}
-          </td>
-        </tr>
-        {% endif %}
         <tr style="border-top: 1px solid #ddd;">
-          <td style="padding: 0.75rem 0; color: #666;"><strong>小計:</strong></td>
+          <td style="padding: 0.75rem 0; color: #666; width: 40%;"><strong>小計:</strong></td>
           <td style="padding: 0.75rem 0; text-align: right;"><strong>¥{{ "{:,}".format(estimate[12]|int) }}</strong></td>
         </tr>
         <tr>

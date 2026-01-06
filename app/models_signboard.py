@@ -104,6 +104,7 @@ class SignboardEstimate(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     
-    # リレーション
-    tenant = relationship("TTenant", foreign_keys=[tenant_id])
-    material = relationship("Material", back_populates="estimates")
+    # リレーションシップ
+    tenant = relationship("TTenant", backref="signboard_estimates")
+    material = relationship("Material", backref="signboard_estimates")
+    items = relationship("SignboardEstimateItem", back_populates="estimate", cascade="all, delete-orphan")

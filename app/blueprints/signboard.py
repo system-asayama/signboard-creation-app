@@ -312,18 +312,50 @@ def estimate_new():
     
     if request.method == 'POST':
         customer_name = request.form.get('customer_name')
-        width = float(request.form.get('width'))
-        height = float(request.form.get('height'))
-        material_id = int(request.form.get('material_id'))
-        quantity = int(request.form.get('quantity', 1))
         notes = request.form.get('notes')
         
-        # 価格を計算
-        try:
-            calc = calculate_price(material_id, width, height, quantity)
-        except ValueError as e:
-            flash(str(e), 'error')
+        # 明細データを取得
+        items_data = []
+        total_subtotal = 0
+        
+        # フォームから明細データを抽出
+        form_keys = list(request.form.keys())
+        item_ids = set()
+        for key in form_keys:
+            if key.startswith('items[') and '][material_id]' in key:
+                # items[1][material_id] から 1 を抽出
+                item_id = key.split('[')[1].split(']')[0]
+                item_ids.add(item_id)
+        
+        # 各明細の価格を計算
+        for item_id in item_ids:
+            material_id = int(request.form.get(f'items[{item_id}][material_id]'))
+            width = float(request.form.get(f'items[{item_id}][width]'))
+            height = float(request.form.get(f'items[{item_id}][height]'))
+            quantity = int(request.form.get(f'items[{item_id}][quantity]', 1))
+            
+            try:
+                calc = calculate_price(material_id, width, height, quantity)
+                items_data.append({
+                    'material_id': material_id,
+                    'width': width,
+                    'height': height,
+                    'quantity': quantity,
+                    'calc': calc
+                })
+                total_subtotal += calc['subtotal']
+            except ValueError as e:
+                flash(f'明細{item_id}の計算エラー: {str(e)}', 'error')
+                return redirect(url_for('signboard.estimate_new'))
+        
+        if not items_data:
+            flash('明細が入力されていません', 'error')
             return redirect(url_for('signboard.estimate_new'))
+        
+        # 合計金額を計算
+        tax_rate = 0.10
+        tax_amount = int(total_subtotal * tax_rate)
+        total_amount = total_subtotal + tax_amount
         
         # 見積もり番号を生成
         estimate_number = generate_estimate_number()
@@ -331,24 +363,51 @@ def estimate_new():
         conn = get_db()
         cur = conn.cursor()
         
+        # 見積もりヘッダーを登録（明細情報は削除）
         sql = _sql(conn, 
             'INSERT INTO "T_看板見積もり" '
             '("tenant_id", "store_id", "created_by", "created_by_role", "estimate_number", '
             '"customer_name", "width", "height", "material_id", "quantity", "area", "weight", '
             '"price_type", "unit_price", "discount_rate", "discounted_unit_price", "subtotal", '
             '"tax_rate", "tax_amount", "total_amount", "notes", "status", "created_at", "updated_at") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING "id"'
         )
         cur.execute(sql, (
             tenant_id,
             session.get('store_id') if role == 'admin' else None,
             user_id, role, estimate_number, customer_name,
-            width, height, material_id, quantity,
-            calc['area'], calc['weight'], calc['price_type'],
-            calc['unit_price'], calc['discount_rate'], calc['discounted_unit_price'],
-            calc['subtotal'], calc['tax_rate'], calc['tax_amount'], calc['total_amount'],
+            0, 0, 0, 0,  # width, height, material_id, quantity（ダミー値）
+            0, None, 'area',  # area, weight, price_type（ダミー値）
+            0, 0, 0,  # unit_price, discount_rate, discounted_unit_price（ダミー値）
+            total_subtotal, tax_rate, tax_amount, total_amount,
             notes, 'draft'
         ))
+        estimate_id = cur.fetchone()[0]
+        
+        # 明細を登録
+        for item in items_data:
+            calc = item['calc']
+            sql = _sql(conn,
+                'INSERT INTO "T_看板見積もり明細" '
+                '("見積もりID", "材質ID", "幅", "高さ", "数量", "面積", "重量", '
+                '"単価タイプ", "単価", "割引率", "割引後単価", "小計", "作成日時", "更新日時") '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+            )
+            cur.execute(sql, (
+                estimate_id,
+                item['material_id'],
+                item['width'],
+                item['height'],
+                item['quantity'],
+                calc['area'],
+                calc['weight'],
+                calc['price_type'],
+                calc['unit_price'],
+                calc['discount_rate'],
+                calc['discounted_unit_price'],
+                calc['subtotal']
+            ))
+        
         conn.commit()
         conn.close()
         
@@ -407,13 +466,27 @@ def estimate_detail(estimate_id):
         cur.execute(sql, (estimate_id, tenant_id, store_id))
     
     estimate = cur.fetchone()
-    conn.close()
     
     if not estimate:
+        conn.close()
         flash('見積もりが見つかりません', 'error')
         return redirect(url_for('signboard.index'))
     
-    return render_template('signboard_estimate_detail.html', estimate=estimate)
+    # 明細を取得
+    sql = _sql(conn,
+        'SELECT i."見積もりID", i."材質ID", i."幅", i."高さ", i."数量", i."面積", i."重量", '
+        'i."単価タイプ", i."単価", i."割引率", i."割引後単価", i."小計", '
+        'm."name" as material_name '
+        'FROM "T_看板見積もり明細" i '
+        'LEFT JOIN "T_材質" m ON i."材質ID" = m."id" '
+        'WHERE i."見積もりID" = %s '
+        'ORDER BY i."ID"'
+    )
+    cur.execute(sql, (estimate_id,))
+    items = cur.fetchall()
+    conn.close()
+    
+    return render_template('signboard_estimate_detail.html', estimate=estimate, items=items)
 
 
 @bp.route('/api/calculate', methods=['POST'])
