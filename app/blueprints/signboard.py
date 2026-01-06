@@ -336,8 +336,8 @@ def estimate_new():
             '("tenant_id", "store_id", "created_by", "created_by_role", "estimate_number", '
             '"customer_name", "width", "height", "material_id", "quantity", "area", "weight", '
             '"price_type", "unit_price", "discount_rate", "discounted_unit_price", "subtotal", '
-            '"tax_rate", "tax_amount", "total_amount", "notes") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+            '"tax_rate", "tax_amount", "total_amount", "notes", "status", "created_at", "updated_at") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
         )
         cur.execute(sql, (
             tenant_id,
@@ -347,7 +347,7 @@ def estimate_new():
             calc['area'], calc['weight'], calc['price_type'],
             calc['unit_price'], calc['discount_rate'], calc['discounted_unit_price'],
             calc['subtotal'], calc['tax_rate'], calc['tax_amount'], calc['total_amount'],
-            notes
+            notes, 'draft'
         ))
         conn.commit()
         conn.close()
