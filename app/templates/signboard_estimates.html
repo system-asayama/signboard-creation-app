@@ -90,14 +90,12 @@
 </style>
 
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-    <h2 style="margin: 0;">見積もり一覧</h2>
-    <div class="header-buttons" style="display: flex; gap: 0.5rem;">
-      {% if session.get('role') == 'tenant_admin' %}
-      <a href="{{ url_for('signboard.materials') }}" class="btn">材質Master</a>
-      {% endif %}
-      <a href="{{ url_for('signboard.estimate_new') }}" class="btn btn-primary">新規見積もり</a>
-    </div>
+  <h2 style="margin: 0 0 1rem 0;">見積一覧</h2>
+  <div class="header-buttons" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+    {% if session.get('role') == 'tenant_admin' %}
+    <a href="{{ url_for('signboard.materials') }}" class="btn">材質Master</a>
+    {% endif %}
+    <a href="{{ url_for('signboard.estimate_new') }}" class="btn btn-primary">新規見積もり</a>
   </div>
 
   {% if estimates %}
