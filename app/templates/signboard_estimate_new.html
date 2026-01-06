@@ -311,24 +311,35 @@ function applyAnalysisResult(data) {
     document.getElementById('customer_name').value = data.customer_name;
   }
   
-  // 明細がない場合は1つ追加
-  const existingItems = document.querySelectorAll('.item-row');
-  if (existingItems.length === 0) {
-    addItem();
+  // 解析結果がない場合は終了
+  if (!data.items || data.items.length === 0) {
+    return;
   }
   
-  // 解析結果を最初の明細に入力
-  if (data.items && data.items.length > 0) {
-    const firstItem = data.items[0];
-    const firstItemDiv = document.querySelector('.item-row');
+  // 既存の明細をすべて削除
+  const existingItems = document.querySelectorAll('.item-row');
+  existingItems.forEach(item => item.remove());
+  
+  // 各解析結果に対して明細を追加
+  data.items.forEach((item, index) => {
+    // 明細を追加
+    addItem();
     
-    if (firstItemDiv) {
+    // 追加された明細を取得
+    const itemDivs = document.querySelectorAll('.item-row');
+    const itemDiv = itemDivs[itemDivs.length - 1];
+    
+    if (itemDiv) {
       // 材質を選択
-      if (firstItem.material_name) {
-        const materialSelect = firstItemDiv.querySelector('select[name^="items"][name$="[material_id]"]');
+      if (item.material_name) {
+        const materialSelect = itemDiv.querySelector('select[name^="items"][name$="[material_id]"]');
         if (materialSelect) {
-          // 材質名から材質IDを検索
-          const material = materials.find(m => m[1] === firstItem.material_name);
+          // 材質名から材質IDを検索（部分一致も許可）
+          const material = materials.find(m => {
+            const materialName = m[1].toLowerCase();
+            const searchName = item.material_name.toLowerCase();
+            return materialName.includes(searchName) || searchName.includes(materialName);
+          });
           if (material) {
             materialSelect.value = material[0];
           }
@@ -336,41 +347,41 @@ function applyAnalysisResult(data) {
       }
       
       // 幅を入力
-      if (firstItem.width) {
-        const widthInput = firstItemDiv.querySelector('input[name^="items"][name$="[width]"]');
+      if (item.width) {
+        const widthInput = itemDiv.querySelector('input[name^="items"][name$="[width]"]');
         if (widthInput) {
-          widthInput.value = firstItem.width;
+          widthInput.value = item.width;
         }
       }
       
       // 高さを入力
-      if (firstItem.height) {
-        const heightInput = firstItemDiv.querySelector('input[name^="items"][name$="[height]"]');
+      if (item.height) {
+        const heightInput = itemDiv.querySelector('input[name^="items"][name$="[height]"]');
         if (heightInput) {
-          heightInput.value = firstItem.height;
+          heightInput.value = item.height;
         }
       }
       
       // 数量を入力
-      if (firstItem.quantity) {
-        const quantityInput = firstItemDiv.querySelector('input[name^="items"][name$="[quantity]"]');
+      if (item.quantity) {
+        const quantityInput = itemDiv.querySelector('input[name^="items"][name$="[quantity]"]');
         if (quantityInput) {
-          quantityInput.value = firstItem.quantity;
+          quantityInput.value = item.quantity;
         }
       }
       
-      // 備考を入力
-      if (firstItem.description) {
-        document.getElementById('notes').value = firstItem.description;
+      // 備考を入力（最初の明細のみ）
+      if (index === 0 && item.description) {
+        document.getElementById('notes').value = item.description;
       }
       
       // 価格計算をトリガー
-      const itemId = firstItemDiv.id.replace('item-', '');
+      const itemId = itemDiv.id.replace('item-', '');
       setTimeout(() => {
         calculateItemPrice(itemId);
-      }, 100);
+      }, 100 * (index + 1)); // 遅延を少しずつずらす
     }
-  }
+  });
 }
 
 // 初期明細を1つ追加
