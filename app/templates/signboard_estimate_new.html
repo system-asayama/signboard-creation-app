@@ -12,6 +12,31 @@
         <input type="text" id="customer_name" name="customer_name" placeholder="株式会社〇〇" />
       </div>
 
+      <!-- 設計図アップロードセクション -->
+      <div style="margin-top: 1.5rem; padding: 1rem; border: 2px dashed #ccc; border-radius: 8px; background: #f9f9f9;">
+        <h3 style="margin-top: 0; margin-bottom: 0.5rem;">設計図をアップロード（AI自動解析）</h3>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 0.8rem;">設計図をアップロードすると、AIが寸法や材質を自動的に解析して入力します。</p>
+        
+        <input type="file" id="blueprintUpload" accept="image/*" style="display: none;" onchange="handleBlueprintUpload(event)" />
+        <button type="button" onclick="document.getElementById('blueprintUpload').click()" class="btn" style="background: #007bff; color: white;">
+          📷 設計図を選択
+        </button>
+        
+        <div id="uploadStatus" style="margin-top: 0.8rem; display: none;">
+          <div id="uploadProgress" style="display: none;">
+            <div style="background: #e9ecef; border-radius: 4px; overflow: hidden; height: 24px;">
+              <div id="progressBar" style="background: #007bff; height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 0.3rem;">解析中...</p>
+          </div>
+          <div id="uploadResult" style="display: none;"></div>
+        </div>
+        
+        <div id="blueprintPreview" style="margin-top: 0.8rem; display: none;">
+          <img id="previewImage" src="" alt="プレビュー" style="max-width: 100%; max-height: 300px; border-radius: 4px; border: 1px solid #ddd;" />
+        </div>
+      </div>
+
       <div>
         <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">明細</h3>
         <div id="itemsContainer">
@@ -209,6 +234,142 @@ function updateTotalPreview() {
     document.getElementById('totalPreview').style.display = 'block';
   } else {
     document.getElementById('totalPreview').style.display = 'none';
+  }
+}
+
+// 設計図アップロード処理
+function handleBlueprintUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // プレビュー表示
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('previewImage').src = e.target.result;
+    document.getElementById('blueprintPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  
+  // アップロードとAI解析
+  const formData = new FormData();
+  formData.append('image', file);
+  
+  // プログレス表示
+  document.getElementById('uploadStatus').style.display = 'block';
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('uploadResult').style.display = 'none';
+  document.getElementById('progressBar').style.width = '30%';
+  
+  fetch('/auto_estimate/analyze', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(result => {
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('uploadProgress').style.display = 'none';
+    
+    if (result.success) {
+      // 成功メッセージ
+      document.getElementById('uploadResult').innerHTML = `
+        <div style="padding: 0.8rem; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
+          <strong>✅ AI解析完了！</strong><br>
+          <span style="font-size: 0.9rem;">解析結果を明細に自動入力しました。</span>
+        </div>
+      `;
+      document.getElementById('uploadResult').style.display = 'block';
+      
+      // 解析結果をフォームに入力
+      applyAnalysisResult(result.data);
+    } else {
+      document.getElementById('uploadResult').innerHTML = `
+        <div style="padding: 0.8rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">
+          <strong>❌ エラー</strong><br>
+          <span style="font-size: 0.9rem;">${result.error || '解析に失敗しました'}</span>
+        </div>
+      `;
+      document.getElementById('uploadResult').style.display = 'block';
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('uploadResult').innerHTML = `
+      <div style="padding: 0.8rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">
+        <strong>❌ エラー</strong><br>
+        <span style="font-size: 0.9rem;">アップロードに失敗しました。</span>
+      </div>
+    `;
+    document.getElementById('uploadResult').style.display = 'block';
+  });
+}
+
+function applyAnalysisResult(data) {
+  // 顧客名を入力
+  if (data.customer_name) {
+    document.getElementById('customer_name').value = data.customer_name;
+  }
+  
+  // 明細がない場合は1つ追加
+  const existingItems = document.querySelectorAll('.item-row');
+  if (existingItems.length === 0) {
+    addItem();
+  }
+  
+  // 解析結果を最初の明細に入力
+  if (data.items && data.items.length > 0) {
+    const firstItem = data.items[0];
+    const firstItemDiv = document.querySelector('.item-row');
+    
+    if (firstItemDiv) {
+      // 材質を選択
+      if (firstItem.material_name) {
+        const materialSelect = firstItemDiv.querySelector('select[name^="items"][name$="[material_id]"]');
+        if (materialSelect) {
+          // 材質名から材質IDを検索
+          const material = materials.find(m => m[1] === firstItem.material_name);
+          if (material) {
+            materialSelect.value = material[0];
+          }
+        }
+      }
+      
+      // 幅を入力
+      if (firstItem.width) {
+        const widthInput = firstItemDiv.querySelector('input[name^="items"][name$="[width]"]');
+        if (widthInput) {
+          widthInput.value = firstItem.width;
+        }
+      }
+      
+      // 高さを入力
+      if (firstItem.height) {
+        const heightInput = firstItemDiv.querySelector('input[name^="items"][name$="[height]"]');
+        if (heightInput) {
+          heightInput.value = firstItem.height;
+        }
+      }
+      
+      // 数量を入力
+      if (firstItem.quantity) {
+        const quantityInput = firstItemDiv.querySelector('input[name^="items"][name$="[quantity]"]');
+        if (quantityInput) {
+          quantityInput.value = firstItem.quantity;
+        }
+      }
+      
+      // 備考を入力
+      if (firstItem.description) {
+        document.getElementById('notes').value = firstItem.description;
+      }
+      
+      // 価格計算をトリガー
+      const itemId = firstItemDiv.id.replace('item-', '');
+      setTimeout(() => {
+        calculateItemPrice(itemId);
+      }, 100);
+    }
   }
 }
 
