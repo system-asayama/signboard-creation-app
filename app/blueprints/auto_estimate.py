@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from werkzeug.utils import secure_filename
+from app.utils.decorators import require_roles, require_app_enabled
 import os
 from datetime import datetime
 import json
-from openai import OpenAI
 import base64
 
 auto_estimate_bp = Blueprint('auto_estimate', __name__, url_prefix='/auto_estimate')
@@ -19,6 +19,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @auto_estimate_bp.route('/')
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
 def index():
     """自動見積もり一覧"""
     from app.utils.db import get_db_connection
@@ -45,6 +47,8 @@ def index():
     return render_template('auto_estimate_list.html', auto_estimates=auto_estimates)
 
 @auto_estimate_bp.route('/new', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
 def new():
     """自動見積もり新規作成"""
     tenant_id = session.get('tenant_id')
@@ -118,6 +122,8 @@ def new():
     return render_template('auto_estimate_new.html')
 
 @auto_estimate_bp.route('/analyze/<int:auto_estimate_id>')
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
 def analyze(auto_estimate_id):
     """AI解析実行"""
     from app.utils.db import get_db_connection
@@ -159,6 +165,8 @@ def analyze(auto_estimate_id):
                          blueprint_files=blueprint_files)
 
 @auto_estimate_bp.route('/api/analyze/<int:auto_estimate_id>', methods=['POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
 def api_analyze(auto_estimate_id):
     """AI解析API"""
     from app.utils.db import get_db_connection
@@ -183,22 +191,12 @@ def api_analyze(auto_estimate_id):
         if not blueprint_files:
             return jsonify({'error': 'ファイルが見つかりません'}), 404
         
-        # テナントのOpenAI APIキーを取得
-        cur.execute('''
-            SELECT "openai_api_key"
-            FROM "T_テナント"
-            WHERE "id" = %s
-        ''', (tenant_id,))
+        # OpenAIクライアントを取得（階層的にAPIキーを検索）
+        from app.utils.api_key import get_openai_client
+        client = get_openai_client(tenant_id=tenant_id, app_name='signboard')
         
-        tenant_data = cur.fetchone()
-        
-        if not tenant_data or not tenant_data[0]:
-            return jsonify({'error': 'OpenAI APIキーが設定されていません。テナント情報から設定してください。'}), 400
-        
-        openai_api_key = tenant_data[0]
-        
-        # OpenAI APIで解析
-        client = OpenAI(api_key=openai_api_key)
+        if not client:
+            return jsonify({'error': 'OpenAI APIキーが設定されていません。テナント情報またはテナントアプリ設定から設定してください。'}), 400
         
         all_items = []
         
@@ -298,6 +296,8 @@ def api_analyze(auto_estimate_id):
 
 
 @auto_estimate_bp.route('/confirm/<int:auto_estimate_id>', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
 def confirm(auto_estimate_id):
     """AI解析結果の確認・編集"""
     from app.utils.db import get_db_connection
@@ -385,6 +385,8 @@ def confirm(auto_estimate_id):
                          materials=materials)
 
 @auto_estimate_bp.route('/create_estimate/<int:auto_estimate_id>', methods=['POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
 def create_estimate(auto_estimate_id):
     """自動見積もりから手動見積もりを作成"""
     from app.utils.db import get_db_connection
