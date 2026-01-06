@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}材質新規登録{% endblock %}
+{% block header %}材質新規登録{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="POST">
+    <div class="grid">
+      <div>
+        <label for="name">材質名 <span style="color: red;">*</span></label>
+        <input type="text" id="name" name="name" required placeholder="例: アルミ複合板" />
+      </div>
+
+      <div>
+        <label for="price_type">単価タイプ <span style="color: red;">*</span></label>
+        <select id="price_type" name="price_type" required onchange="togglePriceFields()">
+          <option value="">選択してください</option>
+          <option value="area">面積単価（円/㎡）</option>
+          <option value="weight">重量単価（円/kg）</option>
+        </select>
+      </div>
+
+      <div id="area_price_field" style="display: none;">
+        <label for="unit_price_area">面積単価（円/㎡）</label>
+        <input type="number" id="unit_price_area" name="unit_price_area" step="0.01" min="0" placeholder="10000" />
+      </div>
+
+      <div id="weight_price_fields" style="display: none;">
+        <div class="grid">
+          <div>
+            <label for="unit_price_weight">重量単価（円/kg）</label>
+            <input type="number" id="unit_price_weight" name="unit_price_weight" step="0.01" min="0" placeholder="500" />
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label for="specific_gravity">比重（kg/㎡/mm）</label>
+              <input type="number" id="specific_gravity" name="specific_gravity" step="0.001" min="0" placeholder="2.7" />
+              <small style="color: #666; font-size: 0.85rem;">例: アルミ複合板 = 2.7</small>
+            </div>
+            <div>
+              <label for="thickness">板厚（mm）</label>
+              <input type="number" id="thickness" name="thickness" step="0.1" min="0" placeholder="3.0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label for="description">説明</label>
+        <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="材質の詳細説明"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary">登録</button>
+        <a href="{{ url_for('signboard.materials') }}" class="btn">キャンセル</a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+function togglePriceFields() {
+  const priceType = document.getElementById('price_type').value;
+  const areaField = document.getElementById('area_price_field');
+  const weightFields = document.getElementById('weight_price_fields');
+  const areaInput = document.getElementById('unit_price_area');
+  const weightInput = document.getElementById('unit_price_weight');
+  const gravityInput = document.getElementById('specific_gravity');
+  const thicknessInput = document.getElementById('thickness');
+  
+  if (priceType === 'area') {
+    areaField.style.display = 'block';
+    weightFields.style.display = 'none';
+    areaInput.required = true;
+    weightInput.required = false;
+    gravityInput.required = false;
+    thicknessInput.required = false;
+  } else if (priceType === 'weight') {
+    areaField.style.display = 'none';
+    weightFields.style.display = 'block';
+    areaInput.required = false;
+    weightInput.required = true;
+    gravityInput.required = true;
+    thicknessInput.required = true;
+  } else {
+    areaField.style.display = 'none';
+    weightFields.style.display = 'none';
+    areaInput.required = false;
+    weightInput.required = false;
+    gravityInput.required = false;
+    thicknessInput.required = false;
+  }
+}
+</script>
+{% endblock %}

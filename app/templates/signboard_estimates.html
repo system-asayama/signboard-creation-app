@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}看板見積もり一覧{% endblock %}
+{% block header %}看板見積もり一覧{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h2 style="margin: 0;">見積もり一覧</h2>
+    <div>
+      {% if session.get('role') == 'tenant_admin' %}
+      <a href="{{ url_for('signboard.materials') }}" class="btn">材質マスタ</a>
+      {% endif %}
+      <a href="{{ url_for('signboard.estimate_new') }}" class="btn btn-primary">新規見積もり</a>
+    </div>
+  </div>
+
+  {% if estimates %}
+  <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+    <thead>
+      <tr style="border-bottom: 2px solid #333;">
+        <th style="padding: 0.75rem; text-align: left;">見積もり番号</th>
+        <th style="padding: 0.75rem; text-align: left;">顧客名</th>
+        <th style="padding: 0.75rem; text-align: left;">材質</th>
+        <th style="padding: 0.75rem; text-align: right;">サイズ</th>
+        <th style="padding: 0.75rem; text-align: right;">数量</th>
+        <th style="padding: 0.75rem; text-align: right;">合計金額</th>
+        <th style="padding: 0.75rem; text-align: center;">ステータス</th>
+        <th style="padding: 0.75rem; text-align: center;">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for est in estimates %}
+      <tr style="border-bottom: 1px solid #ddd;">
+        <td style="padding: 0.75rem;">{{ est[1] }}</td>
+        <td style="padding: 0.75rem;">{{ est[2] or '-' }}</td>
+        <td style="padding: 0.75rem;">{{ est[9] }}</td>
+        <td style="padding: 0.75rem; text-align: right;">{{ est[3]|int }}×{{ est[4]|int }}mm</td>
+        <td style="padding: 0.75rem; text-align: right;">{{ est[5] }}</td>
+        <td style="padding: 0.75rem; text-align: right;">¥{{ "{:,}".format(est[6]|int) }}</td>
+        <td style="padding: 0.75rem; text-align: center;">
+          {% if est[7] == 'draft' %}
+          <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">下書き</span>
+          {% elif est[7] == 'sent' %}
+          <span style="background: #fff3e0; color: #e65100; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">送信済</span>
+          {% elif est[7] == 'approved' %}
+          <span style="background: #e8f5e9; color: #2e7d32; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">承認済</span>
+          {% elif est[7] == 'rejected' %}
+          <span style="background: #ffebee; color: #c62828; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">却下</span>
+          {% endif %}
+        </td>
+        <td style="padding: 0.75rem; text-align: center;">
+          <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn btn-link">詳細</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="text-align: center; color: #666; padding: 2rem;">見積もりがありません</p>
+  {% endif %}
+</div>
+
+<div style="margin-top: 1rem;">
+  {% if session.get('role') == 'tenant_admin' %}
+  <a href="{{ url_for('tenant_admin.dashboard') }}" class="btn">ダッシュボードに戻る</a>
+  {% elif session.get('role') == 'admin' %}
+  <a href="{{ url_for('admin.dashboard') }}" class="btn">ダッシュボードに戻る</a>
+  {% endif %}
+</div>
+{% endblock %}

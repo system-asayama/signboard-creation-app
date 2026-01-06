@@ -8,6 +8,7 @@ try:
     # モデルをインポートしてBaseに登録
     from . import models_login  # noqa: F401
     from . import models_auth  # noqa: F401
+    from . import models_signboard  # noqa: F401
     Base.metadata.create_all(bind=engine)
     print("✅ データベーステーブル作成完了")
 except Exception as e:
@@ -190,6 +191,12 @@ def create_app() -> Flask:
         app.register_blueprint(migrate_bp)
     except Exception as e:
         print(f"⚠️ migrate blueprint 登録エラー: {e}")
+
+    try:
+        from .blueprints.signboard import bp as signboard_bp
+        app.register_blueprint(signboard_bp)
+    except Exception as e:
+        print(f"⚠️ signboard blueprint 登録エラー: {e}")
 
     # エラーハンドラ
     @app.errorhandler(404)

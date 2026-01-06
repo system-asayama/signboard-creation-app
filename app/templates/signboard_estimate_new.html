@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}見積もり新規作成{% endblock %}
+{% block header %}見積もり新規作成{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="POST" id="estimateForm">
+    <div class="grid">
+      <div>
+        <label for="customer_name">顧客名</label>
+        <input type="text" id="customer_name" name="customer_name" placeholder="株式会社〇〇" />
+      </div>
+
+      <div>
+        <label for="material_id">材質 <span style="color: red;">*</span></label>
+        <select id="material_id" name="material_id" required onchange="calculatePrice()">
+          <option value="">選択してください</option>
+          {% for mat in materials %}
+          <option value="{{ mat[0] }}" data-price-type="{{ mat[2] }}">
+            {{ mat[1] }}
+            {% if mat[2] == 'area' %}
+            (面積単価)
+            {% else %}
+            (重量単価)
+            {% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label for="width">幅（mm） <span style="color: red;">*</span></label>
+          <input type="number" id="width" name="width" step="0.1" min="0" required onchange="calculatePrice()" placeholder="1000" />
+        </div>
+        <div>
+          <label for="height">高さ（mm） <span style="color: red;">*</span></label>
+          <input type="number" id="height" name="height" step="0.1" min="0" required onchange="calculatePrice()" placeholder="600" />
+        </div>
+      </div>
+
+      <div>
+        <label for="quantity">数量 <span style="color: red;">*</span></label>
+        <input type="number" id="quantity" name="quantity" min="1" value="1" required onchange="calculatePrice()" />
+      </div>
+
+      <div id="pricePreview" style="display: none; background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
+        <h3 style="margin-top: 0;">見積もり金額</h3>
+        <table style="width: 100%;">
+          <tr>
+            <td>面積:</td>
+            <td style="text-align: right;"><span id="previewArea">-</span> ㎡</td>
+          </tr>
+          <tr id="previewWeightRow" style="display: none;">
+            <td>重量:</td>
+            <td style="text-align: right;"><span id="previewWeight">-</span> kg</td>
+          </tr>
+          <tr>
+            <td>単価:</td>
+            <td style="text-align: right;">¥<span id="previewUnitPrice">-</span></td>
+          </tr>
+          <tr id="previewDiscountRow" style="display: none;">
+            <td>割引率:</td>
+            <td style="text-align: right;"><span id="previewDiscountRate">-</span>%</td>
+          </tr>
+          <tr id="previewDiscountedPriceRow" style="display: none;">
+            <td>割引後単価:</td>
+            <td style="text-align: right;">¥<span id="previewDiscountedPrice">-</span></td>
+          </tr>
+          <tr style="border-top: 1px solid #ddd;">
+            <td style="padding-top: 0.5rem;"><strong>小計:</strong></td>
+            <td style="text-align: right; padding-top: 0.5rem;"><strong>¥<span id="previewSubtotal">-</span></strong></td>
+          </tr>
+          <tr>
+            <td>消費税（10%）:</td>
+            <td style="text-align: right;">¥<span id="previewTax">-</span></td>
+          </tr>
+          <tr style="border-top: 2px solid #333;">
+            <td style="padding-top: 0.5rem;"><strong>合計金額:</strong></td>
+            <td style="text-align: right; padding-top: 0.5rem; font-size: 1.2rem;"><strong>¥<span id="previewTotal">-</span></strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <div>
+        <label for="notes">備考</label>
+        <textarea id="notes" name="notes" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary">見積もりを作成</button>
+        <a href="{{ url_for('signboard.index') }}" class="btn">キャンセル</a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+let calculateTimeout;
+
+function calculatePrice() {
+  clearTimeout(calculateTimeout);
+  
+  const materialId = document.getElementById('material_id').value;
+  const width = document.getElementById('width').value;
+  const height = document.getElementById('height').value;
+  const quantity = document.getElementById('quantity').value;
+  
+  if (!materialId || !width || !height || !quantity) {
+    document.getElementById('pricePreview').style.display = 'none';
+    return;
+  }
+  
+  calculateTimeout = setTimeout(() => {
+    fetch('{{ url_for("signboard.api_calculate") }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        material_id: materialId,
+        width: parseFloat(width),
+        height: parseFloat(height),
+        quantity: parseInt(quantity)
+      })
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        const data = result.data;
+        
+        document.getElementById('previewArea').textContent = data.area.toFixed(4);
+        document.getElementById('previewUnitPrice').textContent = data.unit_price.toLocaleString();
+        document.getElementById('previewSubtotal').textContent = data.subtotal.toLocaleString();
+        document.getElementById('previewTax').textContent = data.tax_amount.toLocaleString();
+        document.getElementById('previewTotal').textContent = data.total_amount.toLocaleString();
+        
+        // 重量表示
+        if (data.weight !== null) {
+          document.getElementById('previewWeight').textContent = data.weight.toFixed(2);
+          document.getElementById('previewWeightRow').style.display = 'table-row';
+        } else {
+          document.getElementById('previewWeightRow').style.display = 'none';
+        }
+        
+        // 割引表示
+        if (data.discount_rate > 0) {
+          document.getElementById('previewDiscountRate').textContent = data.discount_rate.toFixed(2);
+          document.getElementById('previewDiscountedPrice').textContent = data.discounted_unit_price.toLocaleString();
+          document.getElementById('previewDiscountRow').style.display = 'table-row';
+          document.getElementById('previewDiscountedPriceRow').style.display = 'table-row';
+        } else {
+          document.getElementById('previewDiscountRow').style.display = 'none';
+          document.getElementById('previewDiscountedPriceRow').style.display = 'none';
+        }
+        
+        document.getElementById('pricePreview').style.display = 'block';
+      } else {
+        alert('計算エラー: ' + result.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }, 500);
+}
+</script>
+{% endblock %}
