@@ -74,9 +74,9 @@
             <div class="form-group">
                 <label>設計図ファイル <span class="required">*</span></label>
                 <div class="upload-area" id="uploadArea">
-                    <p>📁 ファイルをドラッグ&ドロップ<br>またはクリックして選択</p>
+                    <p>📷 カメラで撮影 / 📁 ファイルを選択<br>またはドラッグ&ドロップ</p>
                     <p style="font-size: 0.9em; color: #666;">対応形式: PDF, PNG, JPG, JPEG</p>
-                    <input type="file" id="fileInput" name="blueprint_files" multiple accept=".pdf,.png,.jpg,.jpeg" style="display: none;">
+                    <input type="file" id="fileInput" name="blueprint_files" multiple accept="image/*,.pdf" capture="environment" style="display: none;">
                 </div>
                 <div class="file-list" id="fileList"></div>
             </div>
