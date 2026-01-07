@@ -218,23 +218,70 @@ def analyze_image():
         return jsonify({'success': False, 'error': 'ファイルが選択されていません'}), 400
     
     try:
+        # データベース接続
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 自動見積もりレコードを作成
+        cur.execute('''
+            INSERT INTO "T_自動見積もり" ("顧客名", "ステータス", "テナントID")
+            VALUES (%s, %s, %s)
+            RETURNING "ID"
+        ''', ('', '解析中', tenant_id))
+        
+        auto_estimate_id = cur.fetchone()[0]
+        conn.commit()
+        
         # OpenAIクライアントを取得
         from app.utils.api_key import get_openai_client
         client = get_openai_client(tenant_id=tenant_id, app_name='signboard')
         
         if not client:
+            cur.close()
+            conn.close()
             return jsonify({'success': False, 'error': 'OpenAI APIキーが設定されていません。'}), 400
         
         all_items = []
         customer_name = None
+        uploaded_files = []
         
         # 各ファイルを処理
         for file in files:
             if file.filename == '':
                 continue
             
-            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpeg'
+            filename = secure_filename(file.filename)
+            file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'jpeg'
+            
+            # ファイルを一度読み込む
+            file.seek(0)
             file_content = file.read()
+            
+            # Cloudinaryにアップロード
+            try:
+                file.seek(0)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"{auto_estimate_id}_{timestamp}_{filename}"
+                
+                upload_result = cloudinary.uploader.upload(
+                    file,
+                    folder="signboard/blueprints",
+                    public_id=unique_filename.rsplit('.', 1)[0],
+                    resource_type="auto"
+                )
+                cloudinary_url = upload_result['secure_url']
+                
+                # データベースに登録
+                cur.execute('''
+                    INSERT INTO "T_設計図ファイル" ("自動見積もりID", "ファイル名", "ファイルパス", "ファイルタイプ")
+                    VALUES (%s, %s, %s, %s)
+                ''', (auto_estimate_id, filename, cloudinary_url, file_ext))
+                conn.commit()
+                
+                uploaded_files.append(cloudinary_url)
+            except Exception as upload_error:
+                print(f"Cloudinaryアップロードエラー: {str(upload_error)}")
+                # エラーでも処理を続行
             
             # PDFの場合は画像に変換
             if file_ext == 'pdf':
@@ -266,11 +313,16 @@ def analyze_image():
                         customer_name = result['customer_name']
                     all_items.extend(result.get('items', []))
         
+        # データベース接続を閉じる
+        cur.close()
+        conn.close()
+        
         return jsonify({
             'success': True,
             'data': {
                 'customer_name': customer_name,
-                'items': all_items
+                'items': all_items,
+                'auto_estimate_id': auto_estimate_id
             }
         })
         
