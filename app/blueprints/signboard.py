@@ -518,10 +518,10 @@ def estimate_detail(estimate_id):
     auto_estimate_id = estimate[20]  # 自動見積もりIDは21番目のカラム
     if auto_estimate_id:
         sql = _sql(conn,
-            'SELECT "ファイルID", "ファイル名", "ファイルパス" '
+            'SELECT "ID", "ファイル名", "ファイルパス" '
             'FROM "T_設計図ファイル" '
             'WHERE "自動見積もりID" = %s '
-            'ORDER BY "ファイルID"'
+            'ORDER BY "ID"'
         )
         cur.execute(sql, (auto_estimate_id,))
         blueprint_images = cur.fetchall()
