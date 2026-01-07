@@ -149,7 +149,11 @@
             {% endif %}
           </td>
           <td style="padding: 0.75rem; text-align: center;">
-            <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn btn-link">詳細</a>
+            <div style="display: flex; gap: 0.3rem; justify-content: center;">
+              <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn btn-link" style="font-size: 0.85rem;">詳細</a>
+              <a href="{{ url_for('signboard.estimate_edit', estimate_id=est[0]) }}" class="btn btn-link" style="font-size: 0.85rem; color: #ff9800;">編集</a>
+              <button type="button" onclick="deleteEstimate({{ est[0] }}, '{{ est[1] }}')" class="btn btn-link" style="font-size: 0.85rem; color: #f44336; background: none; border: none; cursor: pointer;">削除</button>
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -199,7 +203,11 @@
         </div>
       </div>
       <div class="estimate-actions">
-        <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn btn-primary" style="width: 100%; text-align: center;">詳細を見る</a>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="{{ url_for('signboard.estimate_detail', estimate_id=est[0]) }}" class="btn" style="flex: 1; text-align: center; background: #333; color: white;">詳細</a>
+          <a href="{{ url_for('signboard.estimate_edit', estimate_id=est[0]) }}" class="btn" style="flex: 1; text-align: center; background: #ff9800; color: white;">編集</a>
+          <button type="button" onclick="deleteEstimate({{ est[0] }}, '{{ est[1] }}')" class="btn" style="flex: 1; text-align: center; background: #f44336; color: white; border: none; cursor: pointer;">削除</button>
+        </div>
       </div>
     </div>
     {% endfor %}
@@ -208,6 +216,19 @@
   <p style="text-align: center; color: #666; padding: 2rem;">見積もりがありません</p>
   {% endif %}
 </div>
+
+<script>
+function deleteEstimate(estimateId, estimateNumber) {
+  if (confirm(`見積もり ${estimateNumber} を削除しますか？\n\nこの操作は元に戻せません。`)) {
+    // 削除フォームを作成して送信
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/signboard/${estimateId}/delete`;
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+</script>
 
 <div style="margin-top: 1rem;">
   {% if session.get('role') == 'tenant_admin' %}

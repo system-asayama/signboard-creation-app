@@ -536,3 +536,203 @@ def api_calculate():
             'success': False,
             'error': str(e)
         }), 400
+
+
+@bp.route('/<int:estimate_id>/edit', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def estimate_edit(estimate_id):
+    """見積もり編集"""
+    tenant_id = session.get('tenant_id')
+    role = session.get('role')
+    user_id = session.get('user_id')
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # 見積もりの権限チェック
+    if role == 'tenant_admin':
+        sql = _sql(conn, 
+            'SELECT "id" FROM "T_看板見積もり" WHERE "id" = %s AND "tenant_id" = %s'
+        )
+        cur.execute(sql, (estimate_id, tenant_id))
+    else:
+        store_id = session.get('store_id')
+        sql = _sql(conn, 
+            'SELECT "id" FROM "T_看板見積もり" WHERE "id" = %s AND "tenant_id" = %s AND "store_id" = %s'
+        )
+        cur.execute(sql, (estimate_id, tenant_id, store_id))
+    
+    if not cur.fetchone():
+        conn.close()
+        flash('見積もりが見つかりません', 'error')
+        return redirect(url_for('signboard.index'))
+    
+    if request.method == 'POST':
+        customer_name = request.form.get('customer_name')
+        notes = request.form.get('notes')
+        
+        # 明細データを取得
+        items_data = []
+        total_subtotal = 0
+        
+        # フォームから明細データを抽出
+        form_keys = list(request.form.keys())
+        item_ids = set()
+        for key in form_keys:
+            if key.startswith('items[') and '][material_id]' in key:
+                item_id = key.split('[')[1].split(']')[0]
+                item_ids.add(item_id)
+        
+        # 各明細の価格を計算
+        for item_id in item_ids:
+            material_id = int(request.form.get(f'items[{item_id}][material_id]'))
+            width = float(request.form.get(f'items[{item_id}][width]'))
+            height = float(request.form.get(f'items[{item_id}][height]'))
+            quantity = int(request.form.get(f'items[{item_id}][quantity]', 1))
+            
+            try:
+                calc = calculate_price(material_id, width, height, quantity)
+                items_data.append({
+                    'material_id': material_id,
+                    'width': width,
+                    'height': height,
+                    'quantity': quantity,
+                    'calc': calc
+                })
+                total_subtotal += calc['subtotal']
+            except ValueError as e:
+                conn.close()
+                flash(f'明細{item_id}の計算エラー: {str(e)}', 'error')
+                return redirect(url_for('signboard.estimate_edit', estimate_id=estimate_id))
+        
+        if not items_data:
+            conn.close()
+            flash('明細が入力されていません', 'error')
+            return redirect(url_for('signboard.estimate_edit', estimate_id=estimate_id))
+        
+        # 合計金額を計算
+        tax_rate = 0.10
+        tax_amount = int(total_subtotal * tax_rate)
+        total_amount = total_subtotal + tax_amount
+        
+        # 見積もりヘッダーを更新
+        sql = _sql(conn, 
+            'UPDATE "T_看板見積もり" SET '
+            '"customer_name" = %s, "subtotal" = %s, "tax_rate" = %s, "tax_amount" = %s, '
+            '"total_amount" = %s, "notes" = %s, "updated_at" = CURRENT_TIMESTAMP '
+            'WHERE "id" = %s'
+        )
+        cur.execute(sql, (
+            customer_name, total_subtotal, tax_rate, tax_amount, total_amount, notes, estimate_id
+        ))
+        
+        # 既存の明細を削除
+        sql = _sql(conn, 'DELETE FROM "T_看板見積もり明細" WHERE "見積もりID" = %s')
+        cur.execute(sql, (estimate_id,))
+        
+        # 新しい明細を登録
+        for item in items_data:
+            calc = item['calc']
+            sql = _sql(conn,
+                'INSERT INTO "T_看板見積もり明細" '
+                '("見積もりID", "材質ID", "幅", "高さ", "数量", "面積", "重量", '
+                '"単価タイプ", "単価", "割引率", "割引後単価", "小計", "作成日時", "更新日時") '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+            )
+            cur.execute(sql, (
+                estimate_id,
+                item['material_id'],
+                item['width'],
+                item['height'],
+                item['quantity'],
+                calc['area'],
+                calc['weight'],
+                calc['price_type'],
+                calc['unit_price'],
+                calc['discount_rate'],
+                calc['discounted_unit_price'],
+                calc['subtotal']
+            ))
+        
+        conn.commit()
+        conn.close()
+        
+        flash('見積もりを更新しました', 'success')
+        return redirect(url_for('signboard.estimate_detail', estimate_id=estimate_id))
+    
+    # 見積もり情報を取得
+    sql = _sql(conn, 
+        'SELECT "id", "estimate_number", "customer_name", "notes" '
+        'FROM "T_看板見積もり" WHERE "id" = %s'
+    )
+    cur.execute(sql, (estimate_id,))
+    estimate = cur.fetchone()
+    
+    # 明細を取得
+    sql = _sql(conn,
+        'SELECT "id", "材質ID", "幅", "高さ", "数量" '
+        'FROM "T_看板見積もり明細" WHERE "見積もりID" = %s ORDER BY "id"'
+    )
+    cur.execute(sql, (estimate_id,))
+    items = cur.fetchall()
+    
+    # 材質一覧を取得
+    sql = _sql(conn, 
+        'SELECT "id", "name", "price_type" FROM "T_材質" '
+        'WHERE "tenant_id" = %s AND "active" = 1 ORDER BY "name"'
+    )
+    cur.execute(sql, (tenant_id,))
+    materials = cur.fetchall()
+    
+    conn.close()
+    
+    return render_template('signboard_estimate_edit.html', 
+                         estimate=estimate, items=items, materials=materials)
+
+
+@bp.route('/<int:estimate_id>/delete', methods=['POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def estimate_delete(estimate_id):
+    """見積もり削除"""
+    tenant_id = session.get('tenant_id')
+    role = session.get('role')
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # 見積もりの権限チェック
+    if role == 'tenant_admin':
+        sql = _sql(conn, 
+            'SELECT "estimate_number" FROM "T_看板見積もり" WHERE "id" = %s AND "tenant_id" = %s'
+        )
+        cur.execute(sql, (estimate_id, tenant_id))
+    else:
+        store_id = session.get('store_id')
+        sql = _sql(conn, 
+            'SELECT "estimate_number" FROM "T_看板見積もり" WHERE "id" = %s AND "tenant_id" = %s AND "store_id" = %s'
+        )
+        cur.execute(sql, (estimate_id, tenant_id, store_id))
+    
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        flash('見積もりが見つかりません', 'error')
+        return redirect(url_for('signboard.index'))
+    
+    estimate_number = row[0]
+    
+    # 明細を削除
+    sql = _sql(conn, 'DELETE FROM "T_看板見積もり明細" WHERE "見積もりID" = %s')
+    cur.execute(sql, (estimate_id,))
+    
+    # 見積もりを削除
+    sql = _sql(conn, 'DELETE FROM "T_看板見積もり" WHERE "id" = %s')
+    cur.execute(sql, (estimate_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    flash(f'見積もり {estimate_number} を削除しました', 'success')
+    return redirect(url_for('signboard.index'))

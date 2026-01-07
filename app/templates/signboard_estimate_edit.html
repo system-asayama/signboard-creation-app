@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}見積もり編集{% endblock %}
+{% block header %}見積もり編集 - {{ estimate[1] }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="POST" id="estimateForm">
+    <div class="grid">
+      <div>
+        <label for="customer_name">顧客名</label>
+        <input type="text" id="customer_name" name="customer_name" value="{{ estimate[2] or '' }}" placeholder="株式会社〇〇" />
+      </div>
+
+      <!-- 設計図アップロードセクション -->
+      <div style="margin-top: 1.5rem; padding: 1rem; border: 2px dashed #ccc; border-radius: 8px; background: #f9f9f9;">
+        <h3 style="margin-top: 0; margin-bottom: 0.5rem;">設計図をアップロード（AI自動解析）</h3>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 0.8rem;">設計図をアップロードすると、AIが寸法や材質を自動的に解析して入力します。</p>
+        
+        <input type="file" id="blueprintCamera" accept="image/*" capture="environment" style="display: none;" onchange="handleBlueprintUpload(event, 'camera')" />
+        <input type="file" id="blueprintGallery" accept="image/*,application/pdf" multiple style="display: none;" onchange="handleBlueprintUpload(event, 'gallery')" />
+        
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" onclick="document.getElementById('blueprintCamera').click()" class="btn" style="background: #007bff; color: white;">
+            📷 カメラで撮影
+          </button>
+          <button type="button" onclick="document.getElementById('blueprintGallery').click()" class="btn" style="background: #28a745; color: white;">
+            🖼️ ファイルを選択（複数可、PDF対応）
+          </button>
+        </div>
+        
+        <div style="margin-top: 0.8rem;">
+          <label style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem;">
+            <input type="radio" name="uploadMode" value="replace" checked>
+            <span>置き換え（既存の明細をクリア）</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; margin-top: 0.3rem;">
+            <input type="radio" name="uploadMode" value="append">
+            <span>追加（既存の明細に追加）</span>
+          </label>
+        </div>
+        
+        <div id="uploadStatus" style="margin-top: 0.8rem; display: none;">
+          <div id="uploadProgress" style="display: none;">
+            <div style="background: #e9ecef; border-radius: 4px; overflow: hidden; height: 24px;">
+              <div id="progressBar" style="background: #007bff; height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 0.3rem;">解析中...</p>
+          </div>
+          <div id="uploadResult" style="display: none;"></div>
+        </div>
+        
+        <div id="blueprintPreview" style="margin-top: 0.8rem; display: none;">
+          <img id="previewImage" src="" alt="プレビュー" style="max-width: 100%; max-height: 300px; border-radius: 4px; border: 1px solid #ddd;" />
+        </div>
+      </div>
+
+      <div>
+        <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">明細</h3>
+        <div id="itemsContainer">
+          <!-- 明細行がここに追加される -->
+        </div>
+        <button type="button" onclick="addItem()" class="btn" style="margin-top: 0.5rem;">+ 明細を追加</button>
+      </div>
+
+      <div id="totalPreview" style="display: none; background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+        <h3 style="margin-top: 0;">合計金額</h3>
+        <table style="width: 100%;">
+          <tr style="border-top: 1px solid #ddd;">
+            <td style="padding-top: 0.5rem;"><strong>小計:</strong></td>
+            <td style="text-align: right; padding-top: 0.5rem;"><strong>¥<span id="totalSubtotal">0</span></strong></td>
+          </tr>
+          <tr>
+            <td>消費税（10%）:</td>
+            <td style="text-align: right;">¥<span id="totalTax">0</span></td>
+          </tr>
+          <tr style="border-top: 2px solid #333;">
+            <td style="padding-top: 0.5rem;"><strong>合計金額:</strong></td>
+            <td style="text-align: right; padding-top: 0.5rem; font-size: 1.2rem;"><strong>¥<span id="totalAmount">0</span></strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <div>
+        <label for="notes">備考</label>
+        <textarea id="notes" name="notes" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;">{{ estimate[3] or '' }}</textarea>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary">見積もりを更新</button>
+        <a href="{{ url_for('signboard.index') }}" class="btn">キャンセル</a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+let itemCounter = 0;
+let materials = {{ materials|tojson }};
+
+function addItem() {
+  itemCounter++;
+  const container = document.getElementById('itemsContainer');
+  
+  const itemDiv = document.createElement('div');
+  itemDiv.id = `item-${itemCounter}`;
+  itemDiv.className = 'item-row';
+  itemDiv.style.cssText = 'border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; position: relative;';
+  
+  let materialOptions = '<option value="">選択してください</option>';
+  materials.forEach(mat => {
+    const priceType = mat[2] === 'area' ? '(面積単価)' : '(重量単価)';
+    materialOptions += `<option value="${mat[0]}" data-price-type="${mat[2]}">${mat[1]} ${priceType}</option>`;
+  });
+  
+  itemDiv.innerHTML = `
+    <button type="button" onclick="removeItem(${itemCounter})" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #dc3545; color: white; border: none; border-radius: 4px; padding: 0.3rem 0.6rem; cursor: pointer;">削除</button>
+    
+    <div style="margin-bottom: 0.5rem;">
+      <label>材質 <span style="color: red;">*</span></label>
+      <select name="items[${itemCounter}][material_id]" required onchange="calculateItemPrice(${itemCounter})">
+        ${materialOptions}
+      </select>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <div>
+        <label>幅（mm） <span style="color: red;">*</span></label>
+        <input type="number" name="items[${itemCounter}][width]" step="0.1" min="0" required onchange="calculateItemPrice(${itemCounter})" placeholder="1000" />
+      </div>
+      <div>
+        <label>高さ（mm） <span style="color: red;">*</span></label>
+        <input type="number" name="items[${itemCounter}][height]" step="0.1" min="0" required onchange="calculateItemPrice(${itemCounter})" placeholder="600" />
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 0.5rem;">
+      <label>数量 <span style="color: red;">*</span></label>
+      <input type="number" name="items[${itemCounter}][quantity]" min="1" value="1" required onchange="calculateItemPrice(${itemCounter})" />
+    </div>
+    
+    <div id="itemPreview-${itemCounter}" style="display: none; background: #e9ecef; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>面積: <span id="itemArea-${itemCounter}">-</span> ㎡</span>
+        <span id="itemWeight-${itemCounter}" style="display: none;">重量: <span id="itemWeightValue-${itemCounter}">-</span> kg</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 0.3rem;">
+        <span>単価: ¥<span id="itemUnitPrice-${itemCounter}">-</span></span>
+        <strong>小計: ¥<span id="itemSubtotal-${itemCounter}">-</span></strong>
+      </div>
+    </div>
+  `;
+  
+  container.appendChild(itemDiv);
+  updateTotalPreview();
+}
+
+function removeItem(itemId) {
+  const itemDiv = document.getElementById(`item-${itemId}`);
+  if (itemDiv) {
+    itemDiv.remove();
+    updateTotalPreview();
+  }
+}
+
+let calculateTimeouts = {};
+
+function calculateItemPrice(itemId) {
+  clearTimeout(calculateTimeouts[itemId]);
+  
+  const itemDiv = document.getElementById(`item-${itemId}`);
+  const materialSelect = itemDiv.querySelector(`select[name="items[${itemId}][material_id]"]`);
+  const widthInput = itemDiv.querySelector(`input[name="items[${itemId}][width]"]`);
+  const heightInput = itemDiv.querySelector(`input[name="items[${itemId}][height]"]`);
+  const quantityInput = itemDiv.querySelector(`input[name="items[${itemId}][quantity]"]`);
+  
+  const materialId = materialSelect.value;
+  const width = widthInput.value;
+  const height = heightInput.value;
+  const quantity = quantityInput.value;
+  
+  if (!materialId || !width || !height || !quantity) {
+    document.getElementById(`itemPreview-${itemId}`).style.display = 'none';
+    updateTotalPreview();
+    return;
+  }
+  
+  calculateTimeouts[itemId] = setTimeout(() => {
+    fetch('{{ url_for("signboard.api_calculate") }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        material_id: materialId,
+        width: parseFloat(width),
+        height: parseFloat(height),
+        quantity: parseInt(quantity)
+      })
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        const data = result.data;
+        
+        document.getElementById(`itemArea-${itemId}`).textContent = data.area.toFixed(4);
+        document.getElementById(`itemUnitPrice-${itemId}`).textContent = data.unit_price.toLocaleString();
+        document.getElementById(`itemSubtotal-${itemId}`).textContent = data.subtotal.toLocaleString();
+        
+        // 重量表示
+        if (data.weight !== null) {
+          document.getElementById(`itemWeightValue-${itemId}`).textContent = data.weight.toFixed(2);
+          document.getElementById(`itemWeight-${itemId}`).style.display = 'inline';
+        } else {
+          document.getElementById(`itemWeight-${itemId}`).style.display = 'none';
+        }
+        
+        document.getElementById(`itemPreview-${itemId}`).style.display = 'block';
+        updateTotalPreview();
+      } else {
+        alert('計算エラー: ' + result.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }, 500);
+}
+
+function updateTotalPreview() {
+  let totalSubtotal = 0;
+  let hasItems = false;
+  
+  document.querySelectorAll('.item-row').forEach(itemDiv => {
+    const subtotalSpan = itemDiv.querySelector('[id^="itemSubtotal-"]');
+    if (subtotalSpan && subtotalSpan.textContent !== '-') {
+      const subtotal = parseFloat(subtotalSpan.textContent.replace(/,/g, ''));
+      if (!isNaN(subtotal)) {
+        totalSubtotal += subtotal;
+        hasItems = true;
+      }
+    }
+  });
+  
+  if (hasItems) {
+    const totalTax = Math.floor(totalSubtotal * 0.1);
+    const totalAmount = totalSubtotal + totalTax;
+    
+    document.getElementById('totalSubtotal').textContent = totalSubtotal.toLocaleString();
+    document.getElementById('totalTax').textContent = totalTax.toLocaleString();
+    document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
+    document.getElementById('totalPreview').style.display = 'block';
+  } else {
+    document.getElementById('totalPreview').style.display = 'none';
+  }
+}
+
+// 設計図アップロード処理
+function handleBlueprintUpload(event, source) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+  
+  // プレビュー表示（最初のファイルのみ）
+  if (files[0].type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('previewImage').src = e.target.result;
+      document.getElementById('blueprintPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(files[0]);
+  } else {
+    document.getElementById('blueprintPreview').style.display = 'none';
+  }
+  
+  // アップロードとAI解析
+  const formData = new FormData();
+  
+  // 複数ファイルをすべて追加
+  for (let i = 0; i < files.length; i++) {
+    formData.append('files', files[i]);
+  }
+  
+  // アップロードモードを取得
+  const uploadMode = document.querySelector('input[name="uploadMode"]:checked').value;
+  formData.append('mode', uploadMode);
+  
+  // プログレス表示
+  document.getElementById('uploadStatus').style.display = 'block';
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('uploadResult').style.display = 'none';
+  document.getElementById('progressBar').style.width = '30%';
+  
+  fetch('/auto_estimate/analyze', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(result => {
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('uploadProgress').style.display = 'none';
+    
+    if (result.success) {
+      // 成功メッセージ
+      document.getElementById('uploadResult').innerHTML = `
+        <div style="padding: 0.8rem; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
+          <strong>✅ AI解析完了！</strong><br>
+          <span style="font-size: 0.9rem;">解析結果を明細に自動入力しました。</span>
+        </div>
+      `;
+      document.getElementById('uploadResult').style.display = 'block';
+      
+      // 解析結果をフォームに入力
+      const uploadMode = document.querySelector('input[name="uploadMode"]:checked').value;
+      applyAnalysisResult(result.data, uploadMode);
+    } else {
+      document.getElementById('uploadResult').innerHTML = `
+        <div style="padding: 0.8rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">
+          <strong>❌ エラー</strong><br>
+          <span style="font-size: 0.9rem;">${result.error || '解析に失敗しました'}</span>
+        </div>
+      `;
+      document.getElementById('uploadResult').style.display = 'block';
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('uploadResult').innerHTML = `
+      <div style="padding: 0.8rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">
+        <strong>❌ エラー</strong><br>
+        <span style="font-size: 0.9rem;">アップロードに失敗しました。</span>
+      </div>
+    `;
+    document.getElementById('uploadResult').style.display = 'block';
+  });
+}
+
+function applyAnalysisResult(data, mode) {
+  // 顧客名を入力（置き換えモードのみ）
+  if (mode === 'replace' && data.customer_name) {
+    document.getElementById('customer_name').value = data.customer_name;
+  }
+  
+  // 解析結果がない場合は終了
+  if (!data.items || data.items.length === 0) {
+    return;
+  }
+  
+  // 置き換えモードの場合のみ既存の明細を削除
+  if (mode === 'replace') {
+    const existingItems = document.querySelectorAll('.item-row');
+    existingItems.forEach(item => item.remove());
+  }
+  
+  // 各解析結果に対して明細を追加
+  data.items.forEach((item, index) => {
+    // 明細を追加
+    addItem();
+    
+    // 追加された明細を取得
+    const itemDivs = document.querySelectorAll('.item-row');
+    const itemDiv = itemDivs[itemDivs.length - 1];
+    
+    if (itemDiv) {
+      // 材質を選択
+      if (item.material_name) {
+        const materialSelect = itemDiv.querySelector('select[name^="items"][name$="[material_id]"]');
+        if (materialSelect) {
+          // 材質名から材質IDを検索（部分一致も許可）
+          const material = materials.find(m => {
+            const materialName = m[1].toLowerCase();
+            const searchName = item.material_name.toLowerCase();
+            return materialName.includes(searchName) || searchName.includes(materialName);
+          });
+          if (material) {
+            materialSelect.value = material[0];
+          }
+        }
+      }
+      
+      // 幅を入力
+      if (item.width) {
+        const widthInput = itemDiv.querySelector('input[name^="items"][name$="[width]"]');
+        if (widthInput) {
+          widthInput.value = item.width;
+        }
+      }
+      
+      // 高さを入力
+      if (item.height) {
+        const heightInput = itemDiv.querySelector('input[name^="items"][name$="[height]"]');
+        if (heightInput) {
+          heightInput.value = item.height;
+        }
+      }
+      
+      // 数量を入力
+      if (item.quantity) {
+        const quantityInput = itemDiv.querySelector('input[name^="items"][name$="[quantity]"]');
+        if (quantityInput) {
+          quantityInput.value = item.quantity;
+        }
+      }
+      
+      // 備考を入力（最初の明細のみ）
+      if (index === 0 && item.description) {
+        document.getElementById('notes').value = item.description;
+      }
+      
+      // 価格計算をトリガー
+      const itemId = itemDiv.id.replace('item-', '');
+      setTimeout(() => {
+        calculateItemPrice(itemId);
+      }, 100 * (index + 1)); // 遅延を少しずつずらす
+    }
+  });
+}
+
+// 編集時は既存の明細を読み込む
+document.addEventListener('DOMContentLoaded', function() {
+  {% if items and items|length > 0 %}
+  // 既存の明細を読み込む
+  const existingItems = {{ items|tojson }};
+  existingItems.forEach((item, index) => {
+    addItem();
+    const itemDivs = document.querySelectorAll('.item-row');
+    const itemDiv = itemDivs[itemDivs.length - 1];
+    
+    if (itemDiv) {
+      // 材質IDを設定 (item[1])
+      const materialSelect = itemDiv.querySelector('select[name^="items"][name$="[material_id]"]');
+      if (materialSelect) {
+        materialSelect.value = item[1];
+      }
+      
+      // 幅を設定 (item[2])
+      const widthInput = itemDiv.querySelector('input[name^="items"][name$="[width]"]');
+      if (widthInput) {
+        widthInput.value = item[2];
+      }
+      
+      // 高さを設定 (item[3])
+      const heightInput = itemDiv.querySelector('input[name^="items"][name$="[height]"]');
+      if (heightInput) {
+        heightInput.value = item[3];
+      }
+      
+      // 数量を設定 (item[4])
+      const quantityInput = itemDiv.querySelector('input[name^="items"][name$="[quantity]"]');
+      if (quantityInput) {
+        quantityInput.value = item[4];
+      }
+      
+      // 価格計算をトリガー
+      const itemId = itemDiv.id.replace('item-', '');
+      setTimeout(() => {
+        calculateItemPrice(itemId);
+      }, 100 * (index + 1));
+    }
+  });
+  {% else %}
+  // 明細がない場合は1つ追加
+  addItem();
+  {% endif %}
+});
+</script>
+{% endblock %}
