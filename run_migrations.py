@@ -126,6 +126,40 @@ def run_migrations():
             conn.rollback()
             raise
         
+        # マイグレーション4: T_材質テーブルにunit_price_volumeカラムを追加
+        print("\n[マイグレーション] T_材質テーブルにunit_price_volumeカラムを追加...")
+        
+        try:
+            if _is_pg(conn):
+                # PostgreSQL: カラムが存在するか確認
+                cur.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'T_材質' AND column_name = 'unit_price_volume'
+                """)
+                if not cur.fetchone():
+                    print("  - unit_price_volumeカラムが存在しません。追加します...")
+                    cur.execute('ALTER TABLE "T_材質" ADD COLUMN unit_price_volume NUMERIC(10, 2)')
+                    conn.commit()
+                    print("  ✅ T_材質テーブルにunit_price_volumeカラムを追加しました")
+                else:
+                    print("  ℹ️  unit_price_volumeカラムは既に存在します（スキップ）")
+            else:
+                # SQLite: PRAGMAでカラムを確認
+                cur.execute('PRAGMA table_info("T_材質")')
+                columns = [row[1] for row in cur.fetchall()]
+                if 'unit_price_volume' not in columns:
+                    print("  - unit_price_volumeカラムが存在しません。追加します...")
+                    cur.execute('ALTER TABLE "T_材質" ADD COLUMN unit_price_volume NUMERIC(10, 2)')
+                    conn.commit()
+                    print("  ✅ T_材質テーブルにunit_price_volumeカラムを追加しました")
+                else:
+                    print("  ℹ️  unit_price_volumeカラムは既に存在します（スキップ）")
+        except Exception as e:
+            print(f"  ⚠️  マイグレーションエラー: {e}")
+            conn.rollback()
+            raise
+        
         conn.close()
         
         print("\n" + "=" * 60)
