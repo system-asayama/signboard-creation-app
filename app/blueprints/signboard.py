@@ -356,10 +356,23 @@ def estimate_new():
         
         # 各明細の価格を計算
         for item_id in item_ids:
-            material_id = int(request.form.get(f'items[{item_id}][material_id]'))
-            width = float(request.form.get(f'items[{item_id}][width]'))
-            height = float(request.form.get(f'items[{item_id}][height]'))
-            quantity = int(request.form.get(f'items[{item_id}][quantity]', 1))
+            try:
+                material_id_str = request.form.get(f'items[{item_id}][material_id]')
+                width_str = request.form.get(f'items[{item_id}][width]')
+                height_str = request.form.get(f'items[{item_id}][height]')
+                quantity_str = request.form.get(f'items[{item_id}][quantity]', '1')
+                
+                if not material_id_str or not width_str or not height_str:
+                    flash(f'明細{item_id}の入力が不完全です', 'error')
+                    return redirect(url_for('signboard.estimate_new'))
+                
+                material_id = int(material_id_str)
+                width = float(width_str)
+                height = float(height_str)
+                quantity = int(quantity_str)
+            except (ValueError, TypeError) as e:
+                flash(f'明細{item_id}の入力値が不正です: {str(e)}', 'error')
+                return redirect(url_for('signboard.estimate_new'))
             
             try:
                 calc = calculate_price(material_id, width, height, quantity)
@@ -614,10 +627,23 @@ def estimate_edit(estimate_id):
         
         # 各明細の価格を計算
         for item_id in item_ids:
-            material_id = int(request.form.get(f'items[{item_id}][material_id]'))
-            width = float(request.form.get(f'items[{item_id}][width]'))
-            height = float(request.form.get(f'items[{item_id}][height]'))
-            quantity = int(request.form.get(f'items[{item_id}][quantity]', 1))
+            try:
+                material_id_str = request.form.get(f'items[{item_id}][material_id]')
+                width_str = request.form.get(f'items[{item_id}][width]')
+                height_str = request.form.get(f'items[{item_id}][height]')
+                quantity_str = request.form.get(f'items[{item_id}][quantity]', '1')
+                
+                if not material_id_str or not width_str or not height_str:
+                    flash(f'明細{item_id}の入力が不完全です', 'error')
+                    return redirect(url_for('signboard.estimate_new'))
+                
+                material_id = int(material_id_str)
+                width = float(width_str)
+                height = float(height_str)
+                quantity = int(quantity_str)
+            except (ValueError, TypeError) as e:
+                flash(f'明細{item_id}の入力値が不正です: {str(e)}', 'error')
+                return redirect(url_for('signboard.estimate_new'))
             
             try:
                 calc = calculate_price(material_id, width, height, quantity)
