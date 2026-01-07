@@ -17,7 +17,7 @@ class SignboardEstimateItem(db.Model):
     quantity = Column('数量', Integer, nullable=False, default=1)
     area = Column('面積', Numeric(10, 4), comment='面積（㎡）')
     weight = Column('重量', Numeric(10, 4), comment='重量（kg）')
-    price_type = Column('単価タイプ', String(20), nullable=False, comment='area: 面積単価, weight: 重量単価')
+    price_type = Column('単価タイプ', String(20), nullable=False, comment='area: 面積単価, weight: 重量単価, volume: 体積単価')
     unit_price = Column('単価', Numeric(10, 2), nullable=False)
     discount_rate = Column('割引率', Numeric(5, 2), default=0, comment='割引率（%）')
     discounted_unit_price = Column('割引後単価', Numeric(10, 2), comment='割引後単価')

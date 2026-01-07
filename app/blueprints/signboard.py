@@ -53,7 +53,7 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
     # 材質情報を取得
     sql = _sql(conn, 
         'SELECT "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"specific_gravity", "thickness" FROM "T_材質" WHERE "id" = %s'
+        '"unit_price_volume", "specific_gravity", "thickness" FROM "T_材質" WHERE "id" = %s'
     )
     cur.execute(sql, (material_id,))
     material = cur.fetchone()
@@ -62,7 +62,7 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
         conn.close()
         raise ValueError("材質が見つかりません")
     
-    name, price_type, unit_price_area, unit_price_weight, specific_gravity, thickness = material
+    name, price_type, unit_price_area, unit_price_weight, unit_price_volume, specific_gravity, thickness = material
     
     # 面積を計算（㎡）
     area_m2 = (width_mm / 1000) * (height_mm / 1000)
@@ -84,6 +84,16 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
         else:
             conn.close()
             raise ValueError("重量単価の材質には比重と板厚が必要です")
+    elif price_type == 'volume':
+        # 体積単価の場合
+        if thickness:
+            # 体積 = 面積（㎡） × 板厚（mm） / 1000 = ㎥
+            volume_m3 = area_m2 * (thickness / 1000)
+            unit_price = unit_price_volume or 0
+            base_price = volume_m3 * unit_price
+        else:
+            conn.close()
+            raise ValueError("体積単価の材質には板厚が必要です")
     else:
         conn.close()
         raise ValueError("不明な単価タイプです")
@@ -115,8 +125,13 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
     # 割引後の価格を計算
     if price_type == 'area':
         discounted_base_price = area_m2 * discounted_unit_price
-    else:
+    elif price_type == 'weight':
         discounted_base_price = weight_kg * discounted_unit_price
+    elif price_type == 'volume':
+        volume_m3 = area_m2 * (thickness / 1000)
+        discounted_base_price = volume_m3 * discounted_unit_price
+    else:
+        discounted_base_price = 0
     
     # 小計（数量を掛ける）
     subtotal = discounted_base_price * quantity
@@ -221,7 +236,7 @@ def materials():
     
     sql = _sql(conn, 
         'SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"specific_gravity", "thickness", "active" '
+        '"unit_price_volume", "specific_gravity", "thickness", "active" '
         'FROM "T_材質" WHERE "tenant_id" = %s ORDER BY "created_at" DESC'
     )
     cur.execute(sql, (tenant_id,))
@@ -242,6 +257,7 @@ def material_new():
         price_type = request.form.get('price_type')
         unit_price_area = request.form.get('unit_price_area')
         unit_price_weight = request.form.get('unit_price_weight')
+        unit_price_volume = request.form.get('unit_price_volume')
         specific_gravity = request.form.get('specific_gravity')
         thickness = request.form.get('thickness')
         description = request.form.get('description')
@@ -251,13 +267,14 @@ def material_new():
         
         sql = _sql(conn, 
             'INSERT INTO "T_材質" ("tenant_id", "name", "price_type", "unit_price_area", '
-            '"unit_price_weight", "specific_gravity", "thickness", "description", "active", "created_at", "updated_at") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "description", "active", "created_at", "updated_at") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
         )
         cur.execute(sql, (
             tenant_id, name, price_type,
             float(unit_price_area) if unit_price_area else None,
             float(unit_price_weight) if unit_price_weight else None,
+            float(unit_price_volume) if unit_price_volume else None,
             float(specific_gravity) if specific_gravity else None,
             float(thickness) if thickness else None,
             description,
@@ -286,13 +303,14 @@ def material_edit(material_id):
         price_type = request.form.get('price_type')
         unit_price_area = request.form.get('unit_price_area')
         unit_price_weight = request.form.get('unit_price_weight')
+        unit_price_volume = request.form.get('unit_price_volume')
         specific_gravity = request.form.get('specific_gravity')
         thickness = request.form.get('thickness')
         description = request.form.get('description')
         
         sql = _sql(conn, 
             'UPDATE "T_材質" SET "name" = %s, "price_type" = %s, "unit_price_area" = %s, '
-            '"unit_price_weight" = %s, "specific_gravity" = %s, "thickness" = %s, '
+            '"unit_price_weight" = %s, "unit_price_volume" = %s, "specific_gravity" = %s, "thickness" = %s, '
             '"description" = %s, "updated_at" = CURRENT_TIMESTAMP '
             'WHERE "id" = %s AND "tenant_id" = %s'
         )
@@ -300,6 +318,7 @@ def material_edit(material_id):
             name, price_type,
             float(unit_price_area) if unit_price_area else None,
             float(unit_price_weight) if unit_price_weight else None,
+            float(unit_price_volume) if unit_price_volume else None,
             float(specific_gravity) if specific_gravity else None,
             float(thickness) if thickness else None,
             description, material_id, tenant_id
@@ -313,7 +332,7 @@ def material_edit(material_id):
     # 材質情報を取得
     sql = _sql(conn, 
         'SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"specific_gravity", "thickness", "description" '
+        '"unit_price_volume", "specific_gravity", "thickness", "description" '
         'FROM "T_材質" WHERE "id" = %s AND "tenant_id" = %s'
     )
     cur.execute(sql, (material_id, tenant_id))

@@ -17,6 +17,7 @@
         <select id="price_type" name="price_type" required onchange="togglePriceFields()">
           <option value="area" {% if material[2] == 'area' %}selected{% endif %}>面積単価（円/㎡）</option>
           <option value="weight" {% if material[2] == 'weight' %}selected{% endif %}>重量単価（円/kg）</option>
+          <option value="volume" {% if material[2] == 'volume' %}selected{% endif %}>体積単価（円/㎥）</option>
         </select>
       </div>
 
@@ -46,6 +47,20 @@
         </div>
       </div>
 
+      <div id="volume_price_field" style="display: {% if material[2] == 'volume' %}block{% else %}none{% endif %};">
+        <div class="grid">
+          <div>
+            <label for="unit_price_volume">体積単価（円/㎥）</label>
+            <input type="number" id="unit_price_volume" name="unit_price_volume" step="0.01" min="0" value="{{ material[8] if material[8] else '' }}" />
+          </div>
+          <div>
+            <label for="thickness_volume">板厚（mm）</label>
+            <input type="number" id="thickness_volume" name="thickness" step="0.1" min="0" value="{{ material[6] if material[6] else '' }}" />
+            <small style="color: #666; font-size: 0.85rem;">体積計算に使用されます</small>
+          </div>
+        </div>
+      </div>
+
       <div>
         <label for="description">説明</label>
         <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;">{{ material[7] if material[7] else '' }}</textarea>
@@ -64,25 +79,44 @@ function togglePriceFields() {
   const priceType = document.getElementById('price_type').value;
   const areaField = document.getElementById('area_price_field');
   const weightFields = document.getElementById('weight_price_fields');
+  const volumeField = document.getElementById('volume_price_field');
   const areaInput = document.getElementById('unit_price_area');
   const weightInput = document.getElementById('unit_price_weight');
+  const volumeInput = document.getElementById('unit_price_volume');
   const gravityInput = document.getElementById('specific_gravity');
   const thicknessInput = document.getElementById('thickness');
+  const thicknessVolumeInput = document.getElementById('thickness_volume');
   
   if (priceType === 'area') {
     areaField.style.display = 'block';
     weightFields.style.display = 'none';
+    volumeField.style.display = 'none';
     areaInput.required = true;
     weightInput.required = false;
+    volumeInput.required = false;
     gravityInput.required = false;
     thicknessInput.required = false;
+    thicknessVolumeInput.required = false;
   } else if (priceType === 'weight') {
     areaField.style.display = 'none';
     weightFields.style.display = 'block';
+    volumeField.style.display = 'none';
     areaInput.required = false;
     weightInput.required = true;
+    volumeInput.required = false;
     gravityInput.required = true;
     thicknessInput.required = true;
+    thicknessVolumeInput.required = false;
+  } else if (priceType === 'volume') {
+    areaField.style.display = 'none';
+    weightFields.style.display = 'none';
+    volumeField.style.display = 'block';
+    areaInput.required = false;
+    weightInput.required = false;
+    volumeInput.required = true;
+    gravityInput.required = false;
+    thicknessInput.required = false;
+    thicknessVolumeInput.required = true;
   }
 }
 </script>
