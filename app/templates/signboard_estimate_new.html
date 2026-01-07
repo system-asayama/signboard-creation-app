@@ -6,6 +6,9 @@
 {% block content %}
 <div class="card">
   <form method="POST" id="estimateForm">
+    <!-- AI解析で生成された自動見積もりID（非表示） -->
+    <input type="hidden" id="auto_estimate_id" name="auto_estimate_id" value="" />
+    
     <div class="grid">
       <div>
         <label for="customer_name">顧客名</label>
@@ -308,6 +311,11 @@ function handleBlueprintUpload(event, source) {
         </div>
       `;
       document.getElementById('uploadResult').style.display = 'block';
+      
+      // 自動見積もりIDをhiddenフィールドに設定
+      if (result.auto_estimate_id) {
+        document.getElementById('auto_estimate_id').value = result.auto_estimate_id;
+      }
       
       // 解析結果をフォームに入力
       const uploadMode = document.querySelector('input[name="uploadMode"]:checked').value;

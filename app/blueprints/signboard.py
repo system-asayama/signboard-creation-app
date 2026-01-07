@@ -339,6 +339,7 @@ def estimate_new():
     if request.method == 'POST':
         customer_name = request.form.get('customer_name')
         notes = request.form.get('notes')
+        auto_estimate_id = request.form.get('auto_estimate_id')  # AI解析で生成された自動見積もりID
         
         # 明細データを取得
         items_data = []
@@ -395,8 +396,8 @@ def estimate_new():
             '("tenant_id", "store_id", "created_by", "created_by_role", "estimate_number", '
             '"customer_name", "width", "height", "material_id", "quantity", "area", "weight", '
             '"price_type", "unit_price", "discount_rate", "discounted_unit_price", "subtotal", '
-            '"tax_rate", "tax_amount", "total_amount", "notes", "status", "created_at", "updated_at") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING "id"'
+            '"tax_rate", "tax_amount", "total_amount", "notes", "status", "自動見積もりID", "created_at", "updated_at") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING "id"'
         )
         cur.execute(sql, (
             tenant_id,
@@ -406,7 +407,8 @@ def estimate_new():
             0, None, 'area',  # area, weight, price_type（ダミー値）
             0, 0, 0,  # unit_price, discount_rate, discounted_unit_price（ダミー値）
             total_subtotal, tax_rate, tax_amount, total_amount,
-            notes, 'draft'
+            notes, 'draft',
+            int(auto_estimate_id) if auto_estimate_id else None  # 自動見積もりID
         ))
         estimate_id = cur.fetchone()[0]
         
