@@ -1,18 +1,32 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.utils import secure_filename
 from app.utils.decorators import require_roles, require_app_enabled
 import os
 from datetime import datetime
 import json
 import base64
+import cloudinary
+import cloudinary.uploader
+from dotenv import load_dotenv
+
+# 環境変数を読み込む
+load_dotenv()
 
 auto_estimate_bp = Blueprint('auto_estimate', __name__, url_prefix='/auto_estimate')
 
-# アップロードフォルダの設定
+# Cloudinary設定
+cloudinary.config(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
+# アップロードフォルダの設定（フォールバック用）
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'uploads', 'blueprints')
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
-# フォルダが存在しない場合は作成
+# フォルダが存在しない場合は作成（フォールバック用）
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
@@ -88,23 +102,41 @@ def new():
             
             auto_estimate_id = cur.fetchone()[0]
             
-            # ファイルを保存
+            # ファイルをCloudinaryにアップロード
             uploaded_files = []
             for file in files:
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
                     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                     unique_filename = f"{auto_estimate_id}_{timestamp}_{filename}"
-                    filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
-                    file.save(filepath)
                     
-                    # データベースに保存
-                    cur.execute('''
-                        INSERT INTO "T_設計図ファイル" ("自動見積もりID", "ファイル名", "ファイルパス", "ファイルタイプ")
-                        VALUES (%s, %s, %s, %s)
-                    ''', (auto_estimate_id, filename, filepath, filename.rsplit('.', 1)[1].lower()))
-                    
-                    uploaded_files.append(filepath)
+                    # Cloudinaryにアップロード
+                    try:
+                        upload_result = cloudinary.uploader.upload(
+                            file,
+                            folder="signboard/blueprints",
+                            public_id=unique_filename.rsplit('.', 1)[0],  # 拡張子を除いた名前
+                            resource_type="auto"  # 画像とPDFを自動判定
+                        )
+                        cloudinary_url = upload_result['secure_url']
+                        
+                        # データベースにCloudinary URLを保存
+                        cur.execute('''
+                            INSERT INTO "T_設計図ファイル" ("自動見積もりID", "ファイル名", "ファイルパス", "ファイルタイプ")
+                            VALUES (%s, %s, %s, %s)
+                        ''', (auto_estimate_id, filename, cloudinary_url, filename.rsplit('.', 1)[1].lower()))
+                        
+                        uploaded_files.append(cloudinary_url)
+                    except Exception as upload_error:
+                        print(f"Cloudinaryアップロードエラー: {upload_error}")
+                        # フォールバック: ローカルに保存
+                        filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+                        file.save(filepath)
+                        cur.execute('''
+                            INSERT INTO "T_設計図ファイル" ("自動見積もりID", "ファイル名", "ファイルパス", "ファイルタイプ")
+                            VALUES (%s, %s, %s, %s)
+                        ''', (auto_estimate_id, filename, filepath, filename.rsplit('.', 1)[1].lower()))
+                        uploaded_files.append(filepath)
             
             conn.commit()
             
@@ -347,9 +379,27 @@ def api_analyze(auto_estimate_id):
         all_items = []
         
         for filepath, filetype in blueprint_files:
-            # 画像をBase64エンコード
-            with open(filepath, 'rb') as image_file:
-                image_data = base64.b64encode(image_file.read()).decode('utf-8')
+            # Cloudinary URLかローカルファイルかを判定
+            if filepath.startswith('http://') or filepath.startswith('https://'):
+                # Cloudinary URLの場合は直接使用
+                image_url = filepath
+                # OpenAIに直接URLを渡す
+                image_content = {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": image_url
+                    }
+                }
+            else:
+                # ローカルファイルの場合はBase64エンコード
+                with open(filepath, 'rb') as image_file:
+                    image_data = base64.b64encode(image_file.read()).decode('utf-8')
+                image_content = {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/{filetype};base64,{image_data}"
+                    }
+                }
             
             # GPT-4 Visionで解析
             response = client.chat.completions.create(
@@ -380,12 +430,7 @@ def api_analyze(auto_estimate_id):
 - 材質が不明な場合は"不明"としてください
 - 寸法が読み取れない場合は0としてください"""
                             },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/{filetype};base64,{image_data}"
-                                }
-                            }
+                            image_content
                         ]
                     }
                 ],
