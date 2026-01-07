@@ -5,78 +5,155 @@
 
 {% block content %}
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
     <h2 style="margin: 0;">材質一覧</h2>
     <a href="{{ url_for('signboard.material_new') }}" class="btn btn-primary">新規材質登録</a>
   </div>
 
   {% if materials %}
-  <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-    <thead>
-      <tr style="border-bottom: 2px solid #333;">
-        <th style="padding: 0.75rem; text-align: left;">材質名</th>
-        <th style="padding: 0.75rem; text-align: center;">単価タイプ</th>
-        <th style="padding: 0.75rem; text-align: right;">面積単価</th>
-        <th style="padding: 0.75rem; text-align: right;">重量単価</th>
-        <th style="padding: 0.75rem; text-align: right;">比重</th>
-        <th style="padding: 0.75rem; text-align: right;">板厚</th>
-        <th style="padding: 0.75rem; text-align: center;">状態</th>
-        <th style="padding: 0.75rem; text-align: center;">操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for mat in materials %}
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 0.75rem;"><strong>{{ mat[1] }}</strong></td>
-        <td style="padding: 0.75rem; text-align: center;">
-          {% if mat[2] == 'area' %}
-          <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">面積</span>
-          {% else %}
-          <span style="background: #fff3e0; color: #e65100; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">重量</span>
-          {% endif %}
-        </td>
-        <td style="padding: 0.75rem; text-align: right;">
-          {% if mat[3] %}
-          ¥{{ "{:,}".format(mat[3]|int) }} / ㎡
-          {% else %}
-          -
-          {% endif %}
-        </td>
-        <td style="padding: 0.75rem; text-align: right;">
-          {% if mat[4] %}
-          ¥{{ "{:,}".format(mat[4]|int) }} / kg
-          {% else %}
-          -
-          {% endif %}
-        </td>
-        <td style="padding: 0.75rem; text-align: right;">
-          {% if mat[5] %}
-          {{ mat[5] }} kg/㎡/mm
-          {% else %}
-          -
-          {% endif %}
-        </td>
-        <td style="padding: 0.75rem; text-align: right;">
-          {% if mat[6] %}
-          {{ mat[6] }} mm
-          {% else %}
-          -
-          {% endif %}
-        </td>
-        <td style="padding: 0.75rem; text-align: center;">
-          {% if mat[7] == 1 %}
-          <span style="background: #e8f5e9; color: #2e7d32; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">有効</span>
-          {% else %}
-          <span style="background: #ffebee; color: #c62828; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">無効</span>
-          {% endif %}
-        </td>
-        <td style="padding: 0.75rem; text-align: center;">
-          <a href="{{ url_for('signboard.material_edit', material_id=mat[0]) }}" class="btn btn-link">編集</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- デスクトップ用テーブル -->
+  <div class="desktop-table" style="display: block;">
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; min-width: 800px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #333;">
+            <th style="padding: 0.75rem; text-align: left;">材質名</th>
+            <th style="padding: 0.75rem; text-align: center;">単価タイプ</th>
+            <th style="padding: 0.75rem; text-align: right;">面積単価</th>
+            <th style="padding: 0.75rem; text-align: right;">重量単価</th>
+            <th style="padding: 0.75rem; text-align: right;">比重</th>
+            <th style="padding: 0.75rem; text-align: right;">板厚</th>
+            <th style="padding: 0.75rem; text-align: center;">状態</th>
+            <th style="padding: 0.75rem; text-align: center;">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mat in materials %}
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 0.75rem;"><strong>{{ mat[1] }}</strong></td>
+            <td style="padding: 0.75rem; text-align: center;">
+              {% if mat[2] == 'area' %}
+              <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">面積</span>
+              {% else %}
+              <span style="background: #fff3e0; color: #e65100; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">重量</span>
+              {% endif %}
+            </td>
+            <td style="padding: 0.75rem; text-align: right;">
+              {% if mat[3] %}
+              ¥{{ "{:,}".format(mat[3]|int) }} / ㎡
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td style="padding: 0.75rem; text-align: right;">
+              {% if mat[4] %}
+              ¥{{ "{:,}".format(mat[4]|int) }} / kg
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td style="padding: 0.75rem; text-align: right;">
+              {% if mat[5] %}
+              {{ mat[5] }} kg/㎡/mm
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td style="padding: 0.75rem; text-align: right;">
+              {% if mat[6] %}
+              {{ mat[6] }} mm
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td style="padding: 0.75rem; text-align: center;">
+              {% if mat[7] == 1 %}
+              <span style="background: #e8f5e9; color: #2e7d32; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">有効</span>
+              {% else %}
+              <span style="background: #ffebee; color: #c62828; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">無効</span>
+              {% endif %}
+            </td>
+            <td style="padding: 0.75rem; text-align: center;">
+              <a href="{{ url_for('signboard.material_edit', material_id=mat[0]) }}" class="btn btn-link">編集</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- モバイル用カードレイアウト -->
+  <div class="mobile-cards" style="display: none;">
+    {% for mat in materials %}
+    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: white;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h3 style="margin: 0; font-size: 1.1rem;">{{ mat[1] }}</h3>
+        {% if mat[7] == 1 %}
+        <span style="background: #e8f5e9; color: #2e7d32; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">有効</span>
+        {% else %}
+        <span style="background: #ffebee; color: #c62828; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">無効</span>
+        {% endif %}
+      </div>
+      
+      <div style="margin-bottom: 0.5rem;">
+        <span style="color: #666; font-size: 0.9rem;">単価タイプ：</span>
+        {% if mat[2] == 'area' %}
+        <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">面積</span>
+        {% else %}
+        <span style="background: #fff3e0; color: #e65100; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">重量</span>
+        {% endif %}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.9rem;">
+        <div>
+          <div style="color: #666;">面積単価</div>
+          <div style="font-weight: 500;">
+            {% if mat[3] %}
+            ¥{{ "{:,}".format(mat[3]|int) }} / ㎡
+            {% else %}
+            -
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <div style="color: #666;">重量単価</div>
+          <div style="font-weight: 500;">
+            {% if mat[4] %}
+            ¥{{ "{:,}".format(mat[4]|int) }} / kg
+            {% else %}
+            -
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <div style="color: #666;">比重</div>
+          <div style="font-weight: 500;">
+            {% if mat[5] %}
+            {{ mat[5] }} kg/㎡/mm
+            {% else %}
+            -
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <div style="color: #666;">板厚</div>
+          <div style="font-weight: 500;">
+            {% if mat[6] %}
+            {{ mat[6] }} mm
+            {% else %}
+            -
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: right;">
+        <a href="{{ url_for('signboard.material_edit', material_id=mat[0]) }}" class="btn btn-link">編集</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% else %}
   <p style="text-align: center; color: #666; padding: 2rem;">材質が登録されていません</p>
   {% endif %}
@@ -85,4 +162,16 @@
 <div style="margin-top: 1rem;">
   <a href="{{ url_for('signboard.index') }}" class="btn">見積もり一覧に戻る</a>
 </div>
+
+<style>
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .desktop-table {
+      display: none !important;
+    }
+    .mobile-cards {
+      display: block !important;
+    }
+  }
+</style>
 {% endblock %}
