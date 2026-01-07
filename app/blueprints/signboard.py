@@ -153,13 +153,26 @@ def index():
     conn = get_db()
     cur = conn.cursor()
     
-    # 見積もり一覧を取得
+    # 見積もり一覧を取得（明細テーブルから集計）
     if role == 'tenant_admin':
         sql = _sql(conn, 
-            'SELECT e."id", e."estimate_number", e."customer_name", e."width", e."height", '
-            'e."quantity", e."total_amount", e."status", e."created_at", m."name" as material_name '
+            'SELECT e."id", e."estimate_number", e."customer_name", '
+            'COALESCE(d."width", e."width") as width, '
+            'COALESCE(d."height", e."height") as height, '
+            'COALESCE(d."quantity", e."quantity") as quantity, '
+            'e."total_amount", e."status", e."created_at", '
+            'COALESCE(m."name", mat."name") as material_name '
             'FROM "T_看板見積もり" e '
-            'LEFT JOIN "T_材質" m ON e."material_id" = m."id" '
+            'LEFT JOIN "T_材質" mat ON e."material_id" = mat."id" '
+            'LEFT JOIN ( '
+            '    SELECT "estimate_id", '
+            '    MAX("width") as width, MAX("height") as height, '
+            '    SUM("quantity") as quantity, '
+            '    (SELECT "name" FROM "T_材質" WHERE "id" = MAX(d2."material_id")) as name '
+            '    FROM "T_看板見積もり明細" d2 '
+            '    GROUP BY "estimate_id" '
+            ') d ON e."id" = d."estimate_id" '
+            'LEFT JOIN "T_材質" m ON m."name" = d."name" '
             'WHERE e."tenant_id" = %s '
             'ORDER BY e."created_at" DESC'
         )
@@ -168,10 +181,23 @@ def index():
         # 店舗管理者は自分の店舗の見積もりのみ
         store_id = session.get('store_id')
         sql = _sql(conn, 
-            'SELECT e."id", e."estimate_number", e."customer_name", e."width", e."height", '
-            'e."quantity", e."total_amount", e."status", e."created_at", m."name" as material_name '
+            'SELECT e."id", e."estimate_number", e."customer_name", '
+            'COALESCE(d."width", e."width") as width, '
+            'COALESCE(d."height", e."height") as height, '
+            'COALESCE(d."quantity", e."quantity") as quantity, '
+            'e."total_amount", e."status", e."created_at", '
+            'COALESCE(m."name", mat."name") as material_name '
             'FROM "T_看板見積もり" e '
-            'LEFT JOIN "T_材質" m ON e."material_id" = m."id" '
+            'LEFT JOIN "T_材質" mat ON e."material_id" = mat."id" '
+            'LEFT JOIN ( '
+            '    SELECT "estimate_id", '
+            '    MAX("width") as width, MAX("height") as height, '
+            '    SUM("quantity") as quantity, '
+            '    (SELECT "name" FROM "T_材質" WHERE "id" = MAX(d2."material_id")) as name '
+            '    FROM "T_看板見積もり明細" d2 '
+            '    GROUP BY "estimate_id" '
+            ') d ON e."id" = d."estimate_id" '
+            'LEFT JOIN "T_材質" m ON m."name" = d."name" '
             'WHERE e."tenant_id" = %s AND e."store_id" = %s '
             'ORDER BY e."created_at" DESC'
         )
