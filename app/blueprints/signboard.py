@@ -408,7 +408,7 @@ def estimate_new():
             0, 0, 0,  # unit_price, discount_rate, discounted_unit_price（ダミー値）
             total_subtotal, tax_rate, tax_amount, total_amount,
             notes, 'draft',
-            int(auto_estimate_id) if auto_estimate_id else None  # 自動見積もりID
+            int(auto_estimate_id) if auto_estimate_id and auto_estimate_id.strip() else None  # 自動見積もりID
         ))
         estimate_id = cur.fetchone()[0]
         
