@@ -313,8 +313,8 @@ function handleBlueprintUpload(event, source) {
       document.getElementById('uploadResult').style.display = 'block';
       
       // 自動見積もりIDをhiddenフィールドに設定
-      if (result.auto_estimate_id) {
-        document.getElementById('auto_estimate_id').value = result.auto_estimate_id;
+      if (result.data && result.data.auto_estimate_id) {
+        document.getElementById('auto_estimate_id').value = result.data.auto_estimate_id;
       }
       
       // 解析結果をフォームに入力
