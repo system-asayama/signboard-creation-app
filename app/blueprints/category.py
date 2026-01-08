@@ -10,7 +10,7 @@ bp = Blueprint('category', __name__, url_prefix='/signboard/categories')
 
 @bp.route('/')
 @require_app_enabled('signboard')
-@require_roles(['tenant_admin', 'store_admin'])
+@require_roles('tenant_admin')
 def index():
     """大分類・中分類一覧"""
     conn = get_db()
@@ -193,7 +193,7 @@ def category_delete(category_id):
 
 @bp.route('/subcategories/new')
 @require_app_enabled('signboard')
-@require_roles(['tenant_admin', 'store_admin'])
+@require_roles('tenant_admin')
 def subcategory_new():
     """中分類新規登録画面"""
     conn = get_db()
@@ -210,7 +210,7 @@ def subcategory_new():
 
 @bp.route('/subcategories/create', methods=['POST'])
 @require_app_enabled('signboard')
-@require_roles(['tenant_admin', 'store_admin'])
+@require_roles('tenant_admin')
 def subcategory_create():
     """中分類新規登録処理"""
     category_id = request.form.get('category_id', type=int)
@@ -245,7 +245,7 @@ def subcategory_create():
 
 @bp.route('/subcategories/<int:subcategory_id>/edit')
 @require_app_enabled('signboard')
-@require_roles(['tenant_admin', 'store_admin'])
+@require_roles('tenant_admin')
 def subcategory_edit(subcategory_id):
     """中分類編集画面"""
     conn = get_db()
@@ -281,7 +281,7 @@ def subcategory_edit(subcategory_id):
 
 @bp.route('/subcategories/<int:subcategory_id>/update', methods=['POST'])
 @require_app_enabled('signboard')
-@require_roles(['tenant_admin', 'store_admin'])
+@require_roles('tenant_admin')
 def subcategory_update(subcategory_id):
     """中分類更新処理"""
     category_id = request.form.get('category_id', type=int)
@@ -317,7 +317,7 @@ def subcategory_update(subcategory_id):
 
 @bp.route('/subcategories/<int:subcategory_id>/delete', methods=['POST'])
 @require_app_enabled('signboard')
-@require_roles(['tenant_admin', 'store_admin'])
+@require_roles('tenant_admin')
 def subcategory_delete(subcategory_id):
     """中分類削除処理"""
     conn = get_db()
@@ -339,7 +339,7 @@ def subcategory_delete(subcategory_id):
 
 @bp.route('/api/subcategories/<int:category_id>')
 @require_app_enabled('signboard')
-@require_roles(['tenant_admin', 'store_admin'])
+@require_roles('tenant_admin')
 def api_subcategories(category_id):
     """大分類IDに紐づく中分類を取得するAPI"""
     conn = get_db()
