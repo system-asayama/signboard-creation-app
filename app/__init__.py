@@ -216,6 +216,12 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"⚠️ estimate_type blueprint 登録エラー: {e}")
 
+    try:
+        from .blueprints.project import bp as project_bp
+        app.register_blueprint(project_bp)
+    except Exception as e:
+        print(f"⚠️ project blueprint 登録エラー: {e}")
+
     # エラーハンドラ
     @app.errorhandler(404)
     def not_found(error):

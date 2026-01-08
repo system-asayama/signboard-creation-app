@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}プロジェクト一覧{% endblock %}
+{% block header %}プロジェクト一覧{% endblock %}
+
+{% block content %}
+<style>
+  .project-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: white;
+  }
+  
+  .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #eee;
+  }
+  
+  .project-number {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .project-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+    margin: 0.5rem 0;
+  }
+  
+  .project-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .project-amount {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2563eb;
+  }
+  
+  .estimate-count {
+    color: #666;
+    font-size: 0.9rem;
+  }
+</style>
+
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 style="margin: 0;">プロジェクト一覧</h2>
+    <a href="{{ url_for('project.new') }}" class="btn btn-primary">
+      ➕ 新規プロジェクト作成
+    </a>
+  </div>
+
+  {% if projects %}
+    {% for project in projects %}
+    <div class="project-card">
+      <div class="project-header">
+        <div>
+          <div class="project-number">{{ project[1] }}</div>
+          <div class="project-name">{{ project[2] }}</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="project-amount">¥{{ "{:,}".format(project[5] or 0) }}</div>
+          <div class="estimate-count">見積数: {{ project[7] }}件</div>
+        </div>
+      </div>
+      
+      <div class="project-info">
+        <div><strong>顧客名:</strong> {{ project[3] or '未設定' }}</div>
+        <div><strong>ステータス:</strong> 
+          {% if project[4] == 'draft' %}
+            <span style="color: #666;">下書き</span>
+          {% elif project[4] == 'completed' %}
+            <span style="color: #16a34a;">完了</span>
+          {% else %}
+            {{ project[4] }}
+          {% endif %}
+        </div>
+        <div><strong>作成日:</strong> {{ project[6].strftime('%Y年%m月%d日') if project[6] else '' }}</div>
+      </div>
+      
+      <div style="text-align: right;">
+        <a href="{{ url_for('project.detail', project_id=project[0]) }}" class="btn btn-outline-primary">
+          詳細を見る →
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align: center; padding: 3rem; background: #f9fafb; border-radius: 8px;">
+      <p style="color: #666; margin-bottom: 1rem;">プロジェクトがまだありません</p>
+      <a href="{{ url_for('project.new') }}" class="btn btn-primary">
+        最初のプロジェクトを作成
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project[2] }} - プロジェクト詳細{% endblock %}
+{% block header %}プロジェクト詳細{% endblock %}
+
+{% block content %}
+<style>
+  .info-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .estimate-item {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+  }
+  
+  .estimate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  
+  .type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+</style>
+
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem;">
+  
+  <!-- プロジェクト基本情報 -->
+  <div class="info-card">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+      <div>
+        <div style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">{{ project[1] }}</div>
+        <h2 style="margin: 0 0 1rem 0;">{{ project[2] }}</h2>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">合計金額</div>
+        <div style="font-size: 1.8rem; font-weight: bold; color: #2563eb;">
+          ¥{{ "{:,}".format(project[8] or 0) }}
+        </div>
+      </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+      <div>
+        <div style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">顧客名</div>
+        <div style="font-weight: 500;">{{ project[3] or '未設定' }}</div>
+      </div>
+      <div>
+        <div style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">ステータス</div>
+        <div>
+          {% if project[7] == 'draft' %}
+            <span style="color: #666;">下書き</span>
+          {% elif project[7] == 'completed' %}
+            <span style="color: #16a34a;">完了</span>
+          {% else %}
+            {{ project[7] }}
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">作成日</div>
+        <div>{{ project[9].strftime('%Y年%m月%d日') if project[9] else '' }}</div>
+      </div>
+    </div>
+    
+    {% if project[4] %}
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+      <div style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">顧客連絡先</div>
+      <div style="white-space: pre-wrap;">{{ project[4] }}</div>
+    </div>
+    {% endif %}
+    
+    {% if project[5] %}
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+      <div style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">現場住所</div>
+      <div style="white-space: pre-wrap;">{{ project[5] }}</div>
+    </div>
+    {% endif %}
+    
+    {% if project[6] %}
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+      <div style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">備考</div>
+      <div style="white-space: pre-wrap;">{{ project[6] }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 見積もり一覧 -->
+  <div class="info-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h3 style="margin: 0;">見積もり一覧</h3>
+      <a href="{{ url_for('estimate_type.select_type') }}?project_id={{ project[0] }}" class="btn btn-primary">
+        ➕ 見積タイプを追加
+      </a>
+    </div>
+
+    {% if estimates %}
+      {% for estimate in estimates %}
+      <div class="estimate-item">
+        <div class="estimate-header">
+          <div>
+            <div style="font-weight: bold; margin-bottom: 0.5rem;">{{ estimate[1] }}</div>
+            <div>
+              <span class="type-badge">{{ estimate[2] }}</span>
+              <span class="type-badge" style="background: #dbeafe; color: #1e40af; margin-left: 0.5rem;">
+                {{ estimate[3] }}
+              </span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 1.3rem; font-weight: bold; color: #2563eb;">
+              ¥{{ "{:,}".format(estimate[4] or 0) }}
+            </div>
+            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+              {{ estimate[5].strftime('%Y/%m/%d') if estimate[5] else '' }}
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right; margin-top: 0.75rem;">
+          <a href="{{ url_for('signboard.estimate_detail', estimate_id=estimate[0]) }}" class="btn btn-sm btn-outline-primary">
+            詳細を見る
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align: center; padding: 2rem; background: #f9fafb; border-radius: 6px;">
+        <p style="color: #666; margin-bottom: 1rem;">見積もりがまだありません</p>
+        <a href="{{ url_for('estimate_type.select_type') }}?project_id={{ project[0] }}" class="btn btn-primary">
+          最初の見積タイプを追加
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div style="text-align: center; margin-top: 2rem;">
+    <a href="{{ url_for('project.index') }}" class="btn btn-outline-secondary">
+      ← プロジェクト一覧に戻る
+    </a>
+  </div>
+
+</div>
+{% endblock %}

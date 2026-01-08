@@ -161,7 +161,14 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
 @require_app_enabled('signboard')
 @require_roles('tenant_admin', 'admin')
 def index():
-    """見積もり一覧"""
+    """プロジェクト一覧にリダイレクト"""
+    return redirect(url_for('project.index'))
+
+@bp.route('/estimates')
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def estimates():
+    """見積もり一覧（旧版）"""
     tenant_id = session.get('tenant_id')
     role = session.get('role')
     
@@ -466,14 +473,20 @@ def estimate_new():
         conn = get_db()
         cur = conn.cursor()
         
+        # セッションからproject_id, estimate_type_id, estimate_subtype_idを取得
+        project_id = session.get('current_project_id')
+        estimate_type_id = session.get('current_estimate_type_id')
+        estimate_subtype_id = session.get('current_subtype_id')
+        
         # 見積もりヘッダーを登録（明細情報は削除）
         sql = _sql(conn, 
             'INSERT INTO "T_看板見積もり" '
             '("tenant_id", "store_id", "created_by", "created_by_role", "estimate_number", '
             '"customer_name", "width", "height", "material_id", "quantity", "area", "weight", '
             '"price_type", "unit_price", "discount_rate", "discounted_unit_price", "subtotal", '
-            '"tax_rate", "tax_amount", "total_amount", "notes", "status", "自動見積もりID", "created_at", "updated_at") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING "id"'
+            '"tax_rate", "tax_amount", "total_amount", "notes", "status", "自動見積もりID", '
+            '"project_id", "estimate_type_id", "estimate_subtype_id", "created_at", "updated_at") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING "id"'
         )
         cur.execute(sql, (
             tenant_id,
@@ -484,7 +497,8 @@ def estimate_new():
             0, 0, 0,  # unit_price, discount_rate, discounted_unit_price（ダミー値）
             total_subtotal, tax_rate, tax_amount, total_amount,
             notes, 'draft',
-            int(auto_estimate_id) if auto_estimate_id else None  # 自動見積もりID
+            int(auto_estimate_id) if auto_estimate_id else None,  # 自動見積もりID
+            project_id, estimate_type_id, estimate_subtype_id  # プロジェクト情報
         ))
         estimate_id = cur.fetchone()[0]
         
@@ -512,11 +526,35 @@ def estimate_new():
                 calc['subtotal']
             ))
         
+        # プロジェクトの合計金額を更新
+        if project_id:
+            sql = _sql(conn, '''
+                UPDATE "T_プロジェクト"
+                SET "total_amount" = (
+                    SELECT COALESCE(SUM("total_amount"), 0)
+                    FROM "T_看板見積もり"
+                    WHERE "project_id" = %s
+                ),
+                "updated_at" = CURRENT_TIMESTAMP
+                WHERE "id" = %s
+            ''')
+            cur.execute(sql, (project_id, project_id))
+        
         conn.commit()
         conn.close()
         
+        # セッションをクリア
+        session.pop('current_project_id', None)
+        session.pop('current_estimate_type_id', None)
+        session.pop('current_subtype_id', None)
+        
         flash('見積もりを作成しました', 'success')
-        return redirect(url_for('signboard.index'))
+        
+        # プロジェクトがあればプロジェクト詳細にリダイレクト
+        if project_id:
+            return redirect(url_for('project.detail', project_id=project_id))
+        else:
+            return redirect(url_for('signboard.index'))
     
     # サブタイプ情報と材質一覧を取得
     conn = get_db()

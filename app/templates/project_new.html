@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}プロジェクト新規作成{% endblock %}
+{% block header %}プロジェクト新規作成{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 0 auto; padding: 1rem;">
+  <form method="POST" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    
+    <div class="form-group" style="margin-bottom: 1.5rem;">
+      <label for="project_name" style="font-weight: bold; margin-bottom: 0.5rem; display: block;">
+        プロジェクト名 <span style="color: red;">*</span>
+      </label>
+      <input 
+        type="text" 
+        id="project_name" 
+        name="project_name" 
+        class="form-control" 
+        placeholder="例: 〇〇店 看板工事"
+        required
+        style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;"
+      >
+    </div>
+
+    <div class="form-group" style="margin-bottom: 1.5rem;">
+      <label for="customer_name" style="font-weight: bold; margin-bottom: 0.5rem; display: block;">
+        顧客名
+      </label>
+      <input 
+        type="text" 
+        id="customer_name" 
+        name="customer_name" 
+        class="form-control" 
+        placeholder="例: 株式会社〇〇"
+        style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;"
+      >
+    </div>
+
+    <div class="form-group" style="margin-bottom: 1.5rem;">
+      <label for="customer_contact" style="font-weight: bold; margin-bottom: 0.5rem; display: block;">
+        顧客連絡先
+      </label>
+      <textarea 
+        id="customer_contact" 
+        name="customer_contact" 
+        class="form-control" 
+        rows="3"
+        placeholder="電話番号、メールアドレス、担当者名など"
+        style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;"
+      ></textarea>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 1.5rem;">
+      <label for="site_address" style="font-weight: bold; margin-bottom: 0.5rem; display: block;">
+        現場住所
+      </label>
+      <textarea 
+        id="site_address" 
+        name="site_address" 
+        class="form-control" 
+        rows="2"
+        placeholder="看板設置場所の住所"
+        style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;"
+      ></textarea>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 1.5rem;">
+      <label for="notes" style="font-weight: bold; margin-bottom: 0.5rem; display: block;">
+        備考
+      </label>
+      <textarea 
+        id="notes" 
+        name="notes" 
+        class="form-control" 
+        rows="4"
+        placeholder="プロジェクトに関する補足情報"
+        style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;"
+      ></textarea>
+    </div>
+
+    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+      <a href="{{ url_for('project.index') }}" class="btn btn-outline-secondary">
+        キャンセル
+      </a>
+      <button type="submit" class="btn btn-primary">
+        プロジェクトを作成
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

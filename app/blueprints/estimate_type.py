@@ -9,6 +9,12 @@ bp = Blueprint('estimate_type', __name__, url_prefix='/signboard/estimate')
 @require_roles('tenant_admin', 'admin')
 def select_type():
     """見積タイプ選択画面（ステップ1）"""
+    project_id = request.args.get('project_id')
+    
+    # project_idをセッションに保存
+    if project_id:
+        session['current_project_id'] = int(project_id)
+    
     conn = get_db()
     cur = conn.cursor()
     
@@ -24,7 +30,7 @@ def select_type():
     cur.close()
     conn.close()
     
-    return render_template('estimate_type_select.html', estimate_types=estimate_types)
+    return render_template('estimate_type_select.html', estimate_types=estimate_types, project_id=project_id)
 
 @bp.route('/select-subtype/<int:type_id>')
 @require_app_enabled('signboard')
@@ -72,6 +78,16 @@ def start_estimate(subtype_id):
     """見積もり作成開始（サブタイプを選択後、見積もり作成画面へ）"""
     # セッションにサブタイプIDを保存
     session['current_subtype_id'] = subtype_id
+    
+    # サブタイプ情報を取得（estimate_type_idを取得するため）
+    conn = get_db()
+    cur = conn.cursor()
+    sql = _sql(conn, 'SELECT estimate_type_id FROM "T_見積サブタイプ" WHERE id = %s')
+    cur.execute(sql, (subtype_id,))
+    row = cur.fetchone()
+    if row:
+        session['current_estimate_type_id'] = row[0]
+    conn.close()
     
     # 見積もり作成画面にリダイレクト
     return redirect(url_for('signboard.estimate_new'))
