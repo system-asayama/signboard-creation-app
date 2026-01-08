@@ -27,15 +27,8 @@
       </div>
 
       <div id="volume_price_field" style="display: none;">
-        <div>
-          <label for="unit_price_volume">体積単価（円/㎥）</label>
-          <input type="number" id="unit_price_volume" name="unit_price_volume" step="0.01" min="0" placeholder="1000000" />
-        </div>
-        <div>
-          <label for="thickness_volume">板厚（mm）</label>
-          <input type="number" id="thickness_volume" name="thickness" step="0.1" min="0" placeholder="3.0" />
-          <small style="color: #666; font-size: 0.85rem;">体積計算に使用されます</small>
-        </div>
+        <label for="unit_price_volume">体積単価（円/㎥）</label>
+        <input type="number" id="unit_price_volume" name="unit_price_volume" step="0.01" min="0" placeholder="1000000" />
       </div>
 
       <div>
@@ -58,26 +51,22 @@ function togglePriceFields() {
   const volumeField = document.getElementById('volume_price_field');
   const areaInput = document.getElementById('unit_price_area');
   const volumeInput = document.getElementById('unit_price_volume');
-  const thicknessVolumeInput = document.getElementById('thickness_volume');
   
   if (priceType === 'area') {
     areaField.style.display = 'block';
     volumeField.style.display = 'none';
     areaInput.required = true;
     volumeInput.required = false;
-    thicknessVolumeInput.required = false;
   } else if (priceType === 'volume') {
     areaField.style.display = 'none';
     volumeField.style.display = 'block';
     areaInput.required = false;
     volumeInput.required = true;
-    thicknessVolumeInput.required = true;
   } else {
     areaField.style.display = 'none';
     volumeField.style.display = 'none';
     areaInput.required = false;
     volumeInput.required = false;
-    thicknessVolumeInput.required = false;
   }
 }
 </script>
