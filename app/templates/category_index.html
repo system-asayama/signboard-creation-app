@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}大分類・中分類管理{% endblock %}
+{% block header %}大分類・中分類管理{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+    <h2 style="margin: 0;">分類一覧</h2>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="{{ url_for('category.category_new') }}" class="btn btn-primary">大分類を追加</a>
+      <a href="{{ url_for('category.subcategory_new') }}" class="btn btn-secondary">中分類を追加</a>
+    </div>
+  </div>
+
+  {% if categories %}
+  {% for category in categories %}
+  <div style="margin-bottom: 2rem; border: 1px solid #ddd; border-radius: 8px; padding: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; background: #f5f5f5; padding: 0.75rem; border-radius: 4px;">
+      <div>
+        <h3 style="margin: 0; color: #333;">{{ category.name }}</h3>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #666;">{{ category.description or '' }}</p>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #999;">コード: {{ category.code }} | 表示順: {{ category.display_order }}</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <a href="{{ url_for('category.category_edit', category_id=category.id) }}" class="btn btn-sm" style="background: #fff; border: 1px solid #ddd;">編集</a>
+        <form method="POST" action="{{ url_for('category.category_delete', category_id=category.id) }}" style="display: inline;" onsubmit="return confirm('この大分類を削除しますか？関連する中分類も削除されます。');">
+          <button type="submit" class="btn btn-sm" style="background: #fff; border: 1px solid #f44336; color: #f44336;">削除</button>
+        </form>
+      </div>
+    </div>
+
+    {% if category.subcategories %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; background: #fafafa;">
+            <th style="padding: 0.5rem; text-align: left; font-size: 0.9rem;">中分類名</th>
+            <th style="padding: 0.5rem; text-align: left; font-size: 0.9rem;">説明</th>
+            <th style="padding: 0.5rem; text-align: center; font-size: 0.9rem;">コード</th>
+            <th style="padding: 0.5rem; text-align: center; font-size: 0.9rem;">表示順</th>
+            <th style="padding: 0.5rem; text-align: center; font-size: 0.9rem;">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for subcategory in category.subcategories %}
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.5rem;"><strong>{{ subcategory.name }}</strong></td>
+            <td style="padding: 0.5rem; font-size: 0.9rem; color: #666;">{{ subcategory.description or '-' }}</td>
+            <td style="padding: 0.5rem; text-align: center; font-size: 0.85rem; color: #999;">{{ subcategory.code }}</td>
+            <td style="padding: 0.5rem; text-align: center;">{{ subcategory.display_order }}</td>
+            <td style="padding: 0.5rem; text-align: center;">
+              <a href="{{ url_for('category.subcategory_edit', subcategory_id=subcategory.id) }}" class="btn btn-sm" style="background: #fff; border: 1px solid #ddd; font-size: 0.85rem; padding: 0.25rem 0.5rem;">編集</a>
+              <form method="POST" action="{{ url_for('category.subcategory_delete', subcategory_id=subcategory.id) }}" style="display: inline;" onsubmit="return confirm('この中分類を削除しますか？');">
+                <button type="submit" class="btn btn-sm" style="background: #fff; border: 1px solid #f44336; color: #f44336; font-size: 0.85rem; padding: 0.25rem 0.5rem;">削除</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #999; text-align: center; padding: 1rem;">中分類が登録されていません</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="color: #999; text-align: center; padding: 2rem;">大分類が登録されていません</p>
+  {% endif %}
+
+  <div style="margin-top: 2rem;">
+    <a href="{{ url_for('signboard.materials') }}" class="btn">材質マスタに戻る</a>
+  </div>
+</div>
+{% endblock %}

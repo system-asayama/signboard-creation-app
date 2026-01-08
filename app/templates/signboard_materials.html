@@ -7,7 +7,10 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
     <h2 style="margin: 0;">材質一覧</h2>
-    <a href="{{ url_for('signboard.material_new') }}" class="btn btn-primary">新規材質登録</a>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="{{ url_for('category.index') }}" class="btn btn-secondary">分類管理</a>
+      <a href="{{ url_for('signboard.material_new') }}" class="btn btn-primary">新規材質登録</a>
+    </div>
   </div>
 
   {% if materials %}

@@ -263,6 +263,7 @@ def material_new():
         shape_type = request.form.get('shape_type')
         wall_thickness = request.form.get('wall_thickness')
         category_id = request.form.get('category_id')
+        subcategory_id = request.form.get('subcategory_id')
         description = request.form.get('description')
         
         conn = get_db()
@@ -270,8 +271,8 @@ def material_new():
         
         sql = _sql(conn, 
             'INSERT INTO "T_材質" ("tenant_id", "name", "price_type", "unit_price_area", '
-            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "shape_type", "wall_thickness", "category_id", "description", "active", "created_at", "updated_at") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "shape_type", "wall_thickness", "category_id", "subcategory_id", "description", "active", "created_at", "updated_at") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
         )
         cur.execute(sql, (
             tenant_id, name, price_type,
@@ -283,6 +284,7 @@ def material_new():
             shape_type or 'square',
             float(wall_thickness) if wall_thickness else None,
             int(category_id) if category_id else None,
+            int(subcategory_id) if subcategory_id else None,
             description,
             1  # active: 1=有効
         ))
@@ -323,12 +325,13 @@ def material_edit(material_id):
         shape_type = request.form.get('shape_type')
         wall_thickness = request.form.get('wall_thickness')
         category_id = request.form.get('category_id')
+        subcategory_id = request.form.get('subcategory_id')
         description = request.form.get('description')
         
         sql = _sql(conn, 
             'UPDATE "T_材質" SET "name" = %s, "price_type" = %s, "unit_price_area" = %s, '
             '"unit_price_weight" = %s, "unit_price_volume" = %s, "specific_gravity" = %s, "thickness" = %s, '
-            '"shape_type" = %s, "wall_thickness" = %s, "category_id" = %s, "description" = %s, "updated_at" = CURRENT_TIMESTAMP '
+            '"shape_type" = %s, "wall_thickness" = %s, "category_id" = %s, "subcategory_id" = %s, "description" = %s, "updated_at" = CURRENT_TIMESTAMP '
             'WHERE "id" = %s AND "tenant_id" = %s'
         )
         cur.execute(sql, (
@@ -341,6 +344,7 @@ def material_edit(material_id):
             shape_type or 'square',
             float(wall_thickness) if wall_thickness else None,
             int(category_id) if category_id else None,
+            int(subcategory_id) if subcategory_id else None,
             description, material_id, tenant_id
         ))
         conn.commit()
@@ -352,7 +356,7 @@ def material_edit(material_id):
     # 材質情報を取得
     sql = _sql(conn, 
         'SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"unit_price_volume", "specific_gravity", "thickness", "description", "shape_type", "wall_thickness", "category_id" '
+        '"unit_price_volume", "specific_gravity", "thickness", "description", "shape_type", "wall_thickness", "category_id", "subcategory_id" '
         'FROM "T_材質" WHERE "id" = %s AND "tenant_id" = %s'
     )
     cur.execute(sql, (material_id, tenant_id))
@@ -362,13 +366,21 @@ def material_edit(material_id):
     sql = _sql(conn, 'SELECT "id", "name", "description" FROM "T_大分類" WHERE "active" = TRUE ORDER BY "display_order"')
     cur.execute(sql)
     categories = cur.fetchall()
+    
+    # 中分類一覧を取得（現在の大分類に紐づくもの）
+    subcategories = []
+    if material and material[11]:  # category_idが存在する場合
+        sql = _sql(conn, 'SELECT "id", "name" FROM "T_中分類" WHERE "category_id" = %s AND "active" = TRUE ORDER BY "display_order"')
+        cur.execute(sql, (material[11],))
+        subcategories = cur.fetchall()
+    
     conn.close()
     
     if not material:
         flash('材質が見つかりません', 'error')
         return redirect(url_for('signboard.materials'))
     
-    return render_template('signboard_material_edit.html', material=material, categories=categories)
+    return render_template('signboard_material_edit.html', material=material, categories=categories, subcategories=subcategories)
 
 
 @bp.route('/new', methods=['GET', 'POST'])

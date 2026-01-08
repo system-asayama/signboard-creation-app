@@ -49,12 +49,20 @@
 
       <div>
         <label for="category_id">大分類 <span style="color: red;">*</span></label>
-        <select id="category_id" name="category_id" required>
+        <select id="category_id" name="category_id" required onchange="loadSubcategories()">
           <option value="">選択してください</option>
           {% for category in categories %}
           <option value="{{ category[0] }}">{{ category[1] }} - {{ category[2] }}</option>
           {% endfor %}
         </select>
+      </div>
+
+      <div>
+        <label for="subcategory_id">中分類</label>
+        <select id="subcategory_id" name="subcategory_id">
+          <option value="">選択してください</option>
+        </select>
+        <small style="color: #666;">※大分類を選択すると中分類が絞り込まれます</small>
       </div>
 
       <div>
@@ -85,6 +93,33 @@ function toggleWallThicknessField() {
   const wallThicknessField = document.getElementById('wall_thickness_field');
   
   wallThicknessField.style.display = shapeType === 'round_pipe' ? 'block' : 'none';
+}
+
+function loadSubcategories() {
+  const categoryId = document.getElementById('category_id').value;
+  const subcategorySelect = document.getElementById('subcategory_id');
+  
+  // リセット
+  subcategorySelect.innerHTML = '<option value="">選択してください</option>';
+  
+  if (!categoryId) {
+    return;
+  }
+  
+  // APIで中分類を取得
+  fetch(`/signboard/categories/api/subcategories/${categoryId}`)
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(sub => {
+        const option = document.createElement('option');
+        option.value = sub.id;
+        option.textContent = sub.name;
+        subcategorySelect.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading subcategories:', error);
+    });
 }
 </script>
 {% endblock %}

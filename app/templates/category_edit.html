@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}大分類編集{% endblock %}
+{% block header %}大分類編集{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="POST" action="{{ url_for('category.category_update', category_id=category.id) }}">
+    <div class="form-group">
+      <label for="code">コード <span style="color: red;">*</span></label>
+      <input type="text" id="code" name="code" value="{{ category.code }}" required placeholder="例: custom_panel" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+      <small style="color: #666;">英数字とアンダースコアのみ使用可能</small>
+    </div>
+
+    <div class="form-group">
+      <label for="name">名前 <span style="color: red;">*</span></label>
+      <input type="text" id="name" name="name" value="{{ category.name }}" required placeholder="例: カスタム板面" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+    </div>
+
+    <div class="form-group">
+      <label for="description">説明</label>
+      <textarea id="description" name="description" rows="3" placeholder="大分類の説明" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">{{ category.description or '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="display_order">表示順序</label>
+      <input type="number" id="display_order" name="display_order" value="{{ category.display_order }}" min="0" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+      <small style="color: #666;">数値が小さいほど上に表示されます</small>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+      <button type="submit" class="btn btn-primary">更新</button>
+      <a href="{{ url_for('category.index') }}" class="btn">キャンセル</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
