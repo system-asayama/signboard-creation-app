@@ -392,6 +392,13 @@ def estimate_new():
     role = session.get('role')
     user_id = session.get('user_id')
     
+    # セッションからサブタイプIDを取得（見積タイプ選択フローから来た場合）
+    subtype_id = session.get('current_subtype_id')
+    
+    # サブタイプIDがない場合は見積タイプ選択画面にリダイレクト
+    if not subtype_id:
+        return redirect(url_for('estimate_type.select_type'))
+    
     if request.method == 'POST':
         customer_name = request.form.get('customer_name')
         notes = request.form.get('notes')
@@ -511,18 +518,36 @@ def estimate_new():
         flash('見積もりを作成しました', 'success')
         return redirect(url_for('signboard.index'))
     
-    # 材質一覧を取得
+    # サブタイプ情報と材質一覧を取得
     conn = get_db()
     cur = conn.cursor()
-    sql = _sql(conn, 
-        'SELECT "id", "name", "price_type", "shape_type", "wall_thickness" FROM "T_材質" '
-        'WHERE "tenant_id" = %s AND "active" = 1 ORDER BY "name"'
-    )
-    cur.execute(sql, (tenant_id,))
+    
+    # サブタイプ情報を取得
+    sql = _sql(conn, '''
+        SELECT st."name", st."description", et."name"
+        FROM "T_見積サブタイプ" st
+        JOIN "T_見積タイプ" et ON st."estimate_type_id" = et."id"
+        WHERE st."id" = %s
+    ''')
+    cur.execute(sql, (subtype_id,))
+    subtype_info = cur.fetchone()
+    
+    # 材質一覧を取得（サブタイプに紐付く大分類の材質のみ）
+    sql = _sql(conn, '''
+        SELECT DISTINCT m."id", m."name", m."price_type", m."shape_type", m."wall_thickness"
+        FROM "T_材質" m
+        JOIN "T_中分類" sc ON m."subcategory_id" = sc."id"
+        JOIN "T_大分類" c ON sc."category_id" = c."id"
+        WHERE m."tenant_id" = %s AND m."active" = 1 AND c."subtype_id" = %s
+        ORDER BY m."name"
+    ''')
+    cur.execute(sql, (tenant_id, subtype_id))
     materials = cur.fetchall()
     conn.close()
     
-    return render_template('signboard_estimate_new.html', materials=materials)
+    return render_template('signboard_estimate_new.html', 
+                         materials=materials, 
+                         subtype_info=subtype_info)
 
 
 @bp.route('/<int:estimate_id>')

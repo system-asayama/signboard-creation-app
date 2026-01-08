@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}見積タイプ選択{% endblock %}
+{% block header %}見積タイプ選択{% endblock %}
+
+{% block content %}
+<div class="card">
+  <p style="margin-bottom: 1.5rem; color: #666;">作成する見積もりのタイプを選択してください。</p>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+    {% for type in estimate_types %}
+    <a href="{{ url_for('estimate_type.select_subtype', type_id=type[0]) }}" 
+       style="display: block; padding: 1.5rem; border: 2px solid #e0e0e0; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s;"
+       onmouseover="this.style.borderColor='#007bff'; this.style.boxShadow='0 4px 12px rgba(0,123,255,0.15)';"
+       onmouseout="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none';">
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 2rem; font-weight: bold; color: #007bff;">{{ type[4] }}</span>
+        <h3 style="margin: 0; font-size: 1.25rem; font-weight: bold;">{{ type[1] }}</h3>
+      </div>
+      <p style="margin: 0; color: #666; font-size: 0.9rem;">{{ type[3] }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .card a:hover h3 {
+    color: #007bff;
+  }
+</style>
+{% endblock %}

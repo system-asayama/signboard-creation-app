@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ estimate_type[1] }} - サブタイプ選択{% endblock %}
+{% block header %}{{ estimate_type[1] }} - サブタイプ選択{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('estimate_type.select_type') }}" style="color: #007bff; text-decoration: none;">
+      ← 見積タイプ選択に戻る
+    </a>
+  </div>
+  
+  <p style="margin-bottom: 1.5rem; color: #666;">{{ estimate_type[3] }}</p>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+    {% for subtype in subtypes %}
+    <a href="{{ url_for('estimate_type.start_estimate', subtype_id=subtype[0]) }}" 
+       style="display: block; padding: 1.25rem; border: 2px solid #e0e0e0; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s;"
+       onmouseover="this.style.borderColor='#28a745'; this.style.boxShadow='0 4px 12px rgba(40,167,69,0.15)';"
+       onmouseout="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none';">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; font-weight: bold;">{{ subtype[1] }}</h3>
+      <p style="margin: 0; color: #666; font-size: 0.85rem;">{{ subtype[3] }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .card a:hover h3 {
+    color: #28a745;
+  }
+</style>
+{% endblock %}

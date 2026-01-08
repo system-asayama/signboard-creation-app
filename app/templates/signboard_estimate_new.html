@@ -4,6 +4,19 @@
 {% block header %}見積もり新規作成{% endblock %}
 
 {% block content %}
+<div style="margin-bottom: 1.5rem; padding: 1rem; background: #f0f8ff; border-left: 4px solid #007bff; border-radius: 4px;">
+  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+    <strong style="color: #007bff;">見積タイプ:</strong>
+    <span>{{ subtype_info[2] if subtype_info else '未選択' }}</span>
+    <span style="color: #999;">></span>
+    <span>{{ subtype_info[0] if subtype_info else '未選択' }}</span>
+  </div>
+  {% if subtype_info and subtype_info[1] %}
+  <p style="margin: 0; font-size: 0.9rem; color: #666;">{{ subtype_info[1] }}</p>
+  {% endif %}
+  <a href="{{ url_for('estimate_type.select_type') }}" style="font-size: 0.85rem; color: #007bff; text-decoration: none;">← 見積タイプを変更</a>
+</div>
+
 <div class="card">
   <form method="POST" id="estimateForm">
     <!-- AI解析で生成された自動見積もりID（非表示） -->
