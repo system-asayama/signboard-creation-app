@@ -8,6 +8,27 @@
   <form method="POST">
     <div class="grid">
       <div>
+        <label for="category_id">大分類 <span style="color: red;">*</span></label>
+        <select id="category_id" name="category_id" required onchange="loadSubcategories()">
+          <option value="">選択してください</option>
+          {% for category in categories %}
+          <option value="{{ category[0] }}" {% if material[11] == category[0] %}selected{% endif %}>{{ category[1] }} - {{ category[2] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="subcategory_id">中分類</label>
+        <select id="subcategory_id" name="subcategory_id">
+          <option value="">選択してください</option>
+          {% for subcategory in subcategories %}
+          <option value="{{ subcategory[0] }}" {% if material[12] == subcategory[0] %}selected{% endif %}>{{ subcategory[1] }}</option>
+          {% endfor %}
+        </select>
+        <small style="color: #666;">※大分類を選択すると中分類が絞り込まれます</small>
+      </div>
+
+      <div>
         <label for="name">材質名 <span style="color: red;">*</span></label>
         <input type="text" id="name" name="name" value="{{ material[1] }}" required />
       </div>
@@ -43,27 +64,6 @@
         <label for="wall_thickness">肉厚（mm）</label>
         <input type="number" id="wall_thickness" name="wall_thickness" step="0.01" min="0" value="{{ material[10] if material[10] else '' }}" placeholder="3.0" />
         <small style="color: #666;">※丸形パイプの場合のみ使用されます</small>
-      </div>
-
-      <div>
-        <label for="category_id">大分類 <span style="color: red;">*</span></label>
-        <select id="category_id" name="category_id" required onchange="loadSubcategories()">
-          <option value="">選択してください</option>
-          {% for category in categories %}
-          <option value="{{ category[0] }}" {% if material[11] == category[0] %}selected{% endif %}>{{ category[1] }} - {{ category[2] }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div>
-        <label for="subcategory_id">中分類</label>
-        <select id="subcategory_id" name="subcategory_id">
-          <option value="">選択してください</option>
-          {% for subcategory in subcategories %}
-          <option value="{{ subcategory[0] }}" {% if material[12] == subcategory[0] %}selected{% endif %}>{{ subcategory[1] }}</option>
-          {% endfor %}
-        </select>
-        <small style="color: #666;">※大分類を選択すると中分類が絞り込まれます</small>
       </div>
 
       <div>
@@ -111,6 +111,7 @@ function toggleWallThicknessField() {
 function loadSubcategories() {
   const categoryId = document.getElementById('category_id').value;
   const subcategorySelect = document.getElementById('subcategory_id');
+  const currentSubcategoryId = {{ material[12] if material[12] else 'null' }};
   
   // リセット
   subcategorySelect.innerHTML = '<option value="">選択してください</option>';
@@ -127,6 +128,9 @@ function loadSubcategories() {
         const option = document.createElement('option');
         option.value = sub.id;
         option.textContent = sub.name;
+        if (currentSubcategoryId && sub.id === currentSubcategoryId) {
+          option.selected = true;
+        }
         subcategorySelect.appendChild(option);
       });
     })
@@ -134,15 +138,5 @@ function loadSubcategories() {
       console.error('Error loading subcategories:', error);
     });
 }
-
-// ページ読み込み時に実行
-document.addEventListener('DOMContentLoaded', function() {
-  toggleWallThicknessField();
-  // 初期表示時に中分類を読み込む
-  const categoryId = document.getElementById('category_id').value;
-  if (categoryId) {
-    loadSubcategories();
-  }
-});
 </script>
 {% endblock %}
