@@ -162,7 +162,11 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
 @require_roles('tenant_admin', 'admin')
 def index():
     """プロジェクト一覧にリダイレクト"""
-    return redirect(url_for('project.index'))
+    try:
+        return redirect(url_for('project.index'))
+    except:
+        # url_forが失敗した場合は直接URLを指定
+        return redirect('/signboard/projects/')
 
 @bp.route('/estimates')
 @require_app_enabled('signboard')
