@@ -16,8 +16,7 @@ CREATE TABLE IF NOT EXISTS "T_プロジェクト" (
     "created_by" INTEGER,
     "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY ("tenant_id") REFERENCES "T_テナント"("id") ON DELETE CASCADE,
-    FOREIGN KEY ("created_by") REFERENCES "T_ユーザー"("id") ON DELETE SET NULL
+    FOREIGN KEY ("tenant_id") REFERENCES "T_テナント"("id") ON DELETE CASCADE
 );
 
 -- プロジェクト番号のインデックス
