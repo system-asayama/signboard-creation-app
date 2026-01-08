@@ -112,8 +112,10 @@ function addItem() {
   
   let materialOptions = '<option value="">選択してください</option>';
   materials.forEach(mat => {
-    const priceType = mat[2] === 'area' ? '(面積単価)' : '(重量単価)';
-    materialOptions += `<option value="${mat[0]}" data-price-type="${mat[2]}">${mat[1]} ${priceType}</option>`;
+    const priceType = mat[2] === 'area' ? '(面積単価)' : mat[2] === 'volume' ? '(体積単価)' : '(重量単価)';
+    const shapeType = mat[3] || 'square';
+    const wallThickness = mat[4] || '';
+    materialOptions += `<option value="${mat[0]}" data-price-type="${mat[2]}" data-shape-type="${shapeType}" data-wall-thickness="${wallThickness}">${mat[1]} ${priceType}</option>`;
   });
   
   itemDiv.innerHTML = `
@@ -121,8 +123,17 @@ function addItem() {
     
     <div style="margin-bottom: 0.5rem;">
       <label>材質 <span style="color: red;">*</span></label>
-      <select name="items[${itemCounter}][material_id]" required onchange="calculateItemPrice(${itemCounter})">
+      <select name="items[${itemCounter}][material_id]" required onchange="onMaterialChange(${itemCounter})">
         ${materialOptions}
+      </select>
+    </div>
+    
+    <div style="margin-bottom: 0.5rem;">
+      <label>形状タイプ <span style="color: red;">*</span></label>
+      <select id="shapeType-${itemCounter}" name="items[${itemCounter}][shape_type]" required onchange="calculateItemPrice(${itemCounter})">
+        <option value="square">角形</option>
+        <option value="round_solid">丸形（中実）</option>
+        <option value="round_pipe">丸形（パイプ）</option>
       </select>
     </div>
     
@@ -164,6 +175,20 @@ function removeItem(itemId) {
     itemDiv.remove();
     updateTotalPreview();
   }
+}
+
+function onMaterialChange(itemId) {
+  const itemDiv = document.getElementById(`item-${itemId}`);
+  const materialSelect = itemDiv.querySelector(`select[name="items[${itemId}][material_id]"]`);
+  const shapeTypeSelect = document.getElementById(`shapeType-${itemId}`);
+  
+  const selectedOption = materialSelect.options[materialSelect.selectedIndex];
+  const shapeType = selectedOption.getAttribute('data-shape-type') || 'square';
+  
+  // 材質のデフォルト形状タイプを設定
+  shapeTypeSelect.value = shapeType;
+  
+  calculateItemPrice(itemId);
 }
 
 let calculateTimeouts = {};

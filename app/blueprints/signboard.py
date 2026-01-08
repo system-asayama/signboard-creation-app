@@ -486,7 +486,7 @@ def estimate_new():
     conn = get_db()
     cur = conn.cursor()
     sql = _sql(conn, 
-        'SELECT "id", "name", "price_type" FROM "T_材質" '
+        'SELECT "id", "name", "price_type", "shape_type", "wall_thickness" FROM "T_材質" '
         'WHERE "tenant_id" = %s AND "active" = 1 ORDER BY "name"'
     )
     cur.execute(sql, (tenant_id,))
@@ -760,7 +760,7 @@ def estimate_edit(estimate_id):
     
     # 材質一覧を取得
     sql = _sql(conn, 
-        'SELECT "id", "name", "price_type" FROM "T_材質" '
+        'SELECT "id", "name", "price_type", "shape_type", "wall_thickness" FROM "T_材質" '
         'WHERE "tenant_id" = %s AND "active" = 1 ORDER BY "name"'
     )
     cur.execute(sql, (tenant_id,))
