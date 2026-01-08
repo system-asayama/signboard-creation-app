@@ -4,6 +4,7 @@
 Herokuのrelease phaseで実行される
 """
 import os
+import sys
 import psycopg2
 from pathlib import Path
 
@@ -81,11 +82,16 @@ def run_migrations():
     print("=" * 60)
     print("マイグレーション自動実行を開始します")
     print("=" * 60)
+    print(f"Python version: {sys.version}")
+    print(f"Working directory: {os.getcwd()}")
+    print(f"DATABASE_URL exists: {bool(os.environ.get('DATABASE_URL'))}")
     
     try:
         # データベース接続
+        print("データベースに接続中...")
         conn = get_db_connection()
         print("✓ データベースに接続しました")
+        print(f"Database connection: {conn.info.dbname}@{conn.info.host}")
         
         # マイグレーション履歴テーブルを作成
         create_migration_table(conn)
@@ -97,6 +103,8 @@ def run_migrations():
         # マイグレーションファイルを取得
         migration_files = get_migration_files()
         print(f"マイグレーションファイル: {len(migration_files)}件")
+        for f in migration_files:
+            print(f"  - {f.name}")
         
         # 未実行のマイグレーションを実行
         pending = [f for f in migration_files if f.name not in executed]
