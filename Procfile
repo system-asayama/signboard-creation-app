@@ -1,2 +1,2 @@
-release: python3.11 migrate.py
+release: python migrate.py
 web: gunicorn wsgi:app
