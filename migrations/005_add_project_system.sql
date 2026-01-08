@@ -26,18 +26,45 @@ CREATE INDEX IF NOT EXISTS "idx_project_tenant" ON "T_プロジェクト"("tenan
 
 -- 既存の見積もりテーブルにproject_idを追加
 ALTER TABLE "T_看板見積もり" ADD COLUMN IF NOT EXISTS "project_id" INTEGER;
-ALTER TABLE "T_看板見積もり" ADD CONSTRAINT "fk_estimate_project" 
-    FOREIGN KEY ("project_id") REFERENCES "T_プロジェクト"("id") ON DELETE CASCADE;
+
+-- 外部キー制約を追加（既に存在する場合はスキップ）
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_estimate_project'
+    ) THEN
+        ALTER TABLE "T_看板見積もり" ADD CONSTRAINT "fk_estimate_project" 
+            FOREIGN KEY ("project_id") REFERENCES "T_プロジェクト"("id") ON DELETE CASCADE;
+    END IF;
+END $$;
 
 -- 見積もりテーブルにestimate_type_idを追加（どの見積タイプか）
 ALTER TABLE "T_看板見積もり" ADD COLUMN IF NOT EXISTS "estimate_type_id" INTEGER;
-ALTER TABLE "T_看板見積もり" ADD CONSTRAINT "fk_estimate_type" 
-    FOREIGN KEY ("estimate_type_id") REFERENCES "T_見積タイプ"("id") ON DELETE SET NULL;
+
+-- 外部キー制約を追加（既に存在する場合はスキップ）
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_estimate_type'
+    ) THEN
+        ALTER TABLE "T_看板見積もり" ADD CONSTRAINT "fk_estimate_type" 
+            FOREIGN KEY ("estimate_type_id") REFERENCES "T_見積タイプ"("id") ON DELETE SET NULL;
+    END IF;
+END $$;
 
 -- 見積もりテーブルにestimate_subtype_idを追加（どのサブタイプか）
 ALTER TABLE "T_看板見積もり" ADD COLUMN IF NOT EXISTS "estimate_subtype_id" INTEGER;
-ALTER TABLE "T_看板見積もり" ADD CONSTRAINT "fk_estimate_subtype" 
-    FOREIGN KEY ("estimate_subtype_id") REFERENCES "T_見積サブタイプ"("id") ON DELETE SET NULL;
+
+-- 外部キー制約を追加（既に存在する場合はスキップ）
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_estimate_subtype'
+    ) THEN
+        ALTER TABLE "T_看板見積もり" ADD CONSTRAINT "fk_estimate_subtype" 
+            FOREIGN KEY ("estimate_subtype_id") REFERENCES "T_見積サブタイプ"("id") ON DELETE SET NULL;
+    END IF;
+END $$;
 
 -- 既存の見積もりを自動的にプロジェクトに変換
 -- 各見積もりに対して1つのプロジェクトを作成
