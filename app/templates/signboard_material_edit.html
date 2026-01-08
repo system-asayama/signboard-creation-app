@@ -46,6 +46,16 @@
       </div>
 
       <div>
+        <label for="category_id">大分類 <span style="color: red;">*</span></label>
+        <select id="category_id" name="category_id" required>
+          <option value="">選択してください</option>
+          {% for category in categories %}
+          <option value="{{ category[0] }}" {% if material[11] == category[0] %}selected{% endif %}>{{ category[1] }} - {{ category[2] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
         <label for="description">説明</label>
         <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;">{{ material[8] if material[8] else '' }}</textarea>
       </div>

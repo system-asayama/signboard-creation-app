@@ -48,6 +48,16 @@
       </div>
 
       <div>
+        <label for="category_id">大分類 <span style="color: red;">*</span></label>
+        <select id="category_id" name="category_id" required>
+          <option value="">選択してください</option>
+          {% for category in categories %}
+          <option value="{{ category[0] }}">{{ category[1] }} - {{ category[2] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
         <label for="description">説明</label>
         <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="材質の詳細説明"></textarea>
       </div>
