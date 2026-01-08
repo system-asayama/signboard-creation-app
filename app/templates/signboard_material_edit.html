@@ -31,6 +31,21 @@
       </div>
 
       <div>
+        <label for="shape_type">形状タイプ <span style="color: red;">*</span></label>
+        <select id="shape_type" name="shape_type" required onchange="toggleWallThicknessField()">
+          <option value="square" {% if material[9] == 'square' or not material[9] %}selected{% endif %}>角形</option>
+          <option value="round_solid" {% if material[9] == 'round_solid' %}selected{% endif %}>丸形（中実）</option>
+          <option value="round_pipe" {% if material[9] == 'round_pipe' %}selected{% endif %}>丸形（パイプ）</option>
+        </select>
+      </div>
+
+      <div id="wall_thickness_field" style="display: {% if material[9] == 'round_pipe' %}block{% else %}none{% endif %};">
+        <label for="wall_thickness">肉厚（mm）</label>
+        <input type="number" id="wall_thickness" name="wall_thickness" step="0.01" min="0" value="{{ material[10] if material[10] else '' }}" placeholder="3.0" />
+        <small style="color: #666;">※丸形パイプの場合のみ使用されます</small>
+      </div>
+
+      <div>
         <label for="description">説明</label>
         <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;">{{ material[8] if material[8] else '' }}</textarea>
       </div>
@@ -63,5 +78,17 @@ function togglePriceFields() {
     volumeInput.required = true;
   }
 }
+
+function toggleWallThicknessField() {
+  const shapeType = document.getElementById('shape_type').value;
+  const wallThicknessField = document.getElementById('wall_thickness_field');
+  
+  wallThicknessField.style.display = shapeType === 'round_pipe' ? 'block' : 'none';
+}
+
+// ページ読み込み時に実行
+document.addEventListener('DOMContentLoaded', function() {
+  toggleWallThicknessField();
+});
 </script>
 {% endblock %}

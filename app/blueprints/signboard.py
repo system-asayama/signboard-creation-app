@@ -236,7 +236,7 @@ def materials():
     
     sql = _sql(conn, 
         'SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"unit_price_volume", "specific_gravity", "thickness", "active" '
+        '"unit_price_volume", "specific_gravity", "thickness", "active", "shape_type", "wall_thickness" '
         'FROM "T_材質" WHERE "tenant_id" = %s ORDER BY "created_at" DESC'
     )
     cur.execute(sql, (tenant_id,))
@@ -260,6 +260,8 @@ def material_new():
         unit_price_volume = request.form.get('unit_price_volume')
         specific_gravity = request.form.get('specific_gravity')
         thickness = request.form.get('thickness')
+        shape_type = request.form.get('shape_type')
+        wall_thickness = request.form.get('wall_thickness')
         description = request.form.get('description')
         
         conn = get_db()
@@ -267,8 +269,8 @@ def material_new():
         
         sql = _sql(conn, 
             'INSERT INTO "T_材質" ("tenant_id", "name", "price_type", "unit_price_area", '
-            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "description", "active", "created_at", "updated_at") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "shape_type", "wall_thickness", "description", "active", "created_at", "updated_at") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
         )
         cur.execute(sql, (
             tenant_id, name, price_type,
@@ -277,6 +279,8 @@ def material_new():
             float(unit_price_volume) if unit_price_volume else None,
             float(specific_gravity) if specific_gravity else None,
             float(thickness) if thickness else None,
+            shape_type or 'square',
+            float(wall_thickness) if wall_thickness else None,
             description,
             1  # active: 1=有効
         ))
@@ -306,12 +310,14 @@ def material_edit(material_id):
         unit_price_volume = request.form.get('unit_price_volume')
         specific_gravity = request.form.get('specific_gravity')
         thickness = request.form.get('thickness')
+        shape_type = request.form.get('shape_type')
+        wall_thickness = request.form.get('wall_thickness')
         description = request.form.get('description')
         
         sql = _sql(conn, 
             'UPDATE "T_材質" SET "name" = %s, "price_type" = %s, "unit_price_area" = %s, '
             '"unit_price_weight" = %s, "unit_price_volume" = %s, "specific_gravity" = %s, "thickness" = %s, '
-            '"description" = %s, "updated_at" = CURRENT_TIMESTAMP '
+            '"shape_type" = %s, "wall_thickness" = %s, "description" = %s, "updated_at" = CURRENT_TIMESTAMP '
             'WHERE "id" = %s AND "tenant_id" = %s'
         )
         cur.execute(sql, (
@@ -321,6 +327,8 @@ def material_edit(material_id):
             float(unit_price_volume) if unit_price_volume else None,
             float(specific_gravity) if specific_gravity else None,
             float(thickness) if thickness else None,
+            shape_type or 'square',
+            float(wall_thickness) if wall_thickness else None,
             description, material_id, tenant_id
         ))
         conn.commit()
@@ -332,7 +340,7 @@ def material_edit(material_id):
     # 材質情報を取得
     sql = _sql(conn, 
         'SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"unit_price_volume", "specific_gravity", "thickness", "description" '
+        '"unit_price_volume", "specific_gravity", "thickness", "description", "shape_type", "wall_thickness" '
         'FROM "T_材質" WHERE "id" = %s AND "tenant_id" = %s'
     )
     cur.execute(sql, (material_id, tenant_id))

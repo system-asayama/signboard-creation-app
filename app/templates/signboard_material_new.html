@@ -32,6 +32,22 @@
       </div>
 
       <div>
+        <label for="shape_type">形状タイプ <span style="color: red;">*</span></label>
+        <select id="shape_type" name="shape_type" required onchange="toggleWallThicknessField()">
+          <option value="">選択してください</option>
+          <option value="square">角形</option>
+          <option value="round_solid">丸形（中実）</option>
+          <option value="round_pipe">丸形（パイプ）</option>
+        </select>
+      </div>
+
+      <div id="wall_thickness_field" style="display: none;">
+        <label for="wall_thickness">肉厚（mm）</label>
+        <input type="number" id="wall_thickness" name="wall_thickness" step="0.01" min="0" placeholder="3.0" />
+        <small style="color: #666;">※丸形パイプの場合のみ使用されます</small>
+      </div>
+
+      <div>
         <label for="description">説明</label>
         <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="材質の詳細説明"></textarea>
       </div>
@@ -49,25 +65,16 @@ function togglePriceFields() {
   const priceType = document.getElementById('price_type').value;
   const areaField = document.getElementById('area_price_field');
   const volumeField = document.getElementById('volume_price_field');
-  const areaInput = document.getElementById('unit_price_area');
-  const volumeInput = document.getElementById('unit_price_volume');
   
-  if (priceType === 'area') {
-    areaField.style.display = 'block';
-    volumeField.style.display = 'none';
-    areaInput.required = true;
-    volumeInput.required = false;
-  } else if (priceType === 'volume') {
-    areaField.style.display = 'none';
-    volumeField.style.display = 'block';
-    areaInput.required = false;
-    volumeInput.required = true;
-  } else {
-    areaField.style.display = 'none';
-    volumeField.style.display = 'none';
-    areaInput.required = false;
-    volumeInput.required = false;
-  }
+  areaField.style.display = priceType === 'area' ? 'block' : 'none';
+  volumeField.style.display = priceType === 'volume' ? 'block' : 'none';
+}
+
+function toggleWallThicknessField() {
+  const shapeType = document.getElementById('shape_type').value;
+  const wallThicknessField = document.getElementById('wall_thickness_field');
+  
+  wallThicknessField.style.display = shapeType === 'round_pipe' ? 'block' : 'none';
 }
 </script>
 {% endblock %}
