@@ -71,6 +71,14 @@
         <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;">{{ material[8] if material[8] else '' }}</textarea>
       </div>
 
+      <div>
+        <label>
+          <input type="checkbox" id="supports_text_processing" name="supports_text_processing" {% if material[13] %}checked{% endif %} />
+          文字加工対応（カッティングシート等）
+        </label>
+        <small style="color: #666; display: block; margin-top: 0.25rem;">※チェックすると見積もり作成時に文字周長計算機能が使えます</small>
+      </div>
+
       <div style="display: flex; gap: 0.5rem;">
         <button type="submit" class="btn btn-primary">更新</button>
         <a href="{{ url_for('signboard.materials') }}" class="btn">キャンセル</a>

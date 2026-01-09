@@ -279,14 +279,15 @@ def material_new():
         category_id = request.form.get('category_id')
         subcategory_id = request.form.get('subcategory_id')
         description = request.form.get('description')
+        supports_text_processing = request.form.get('supports_text_processing') == 'on'
         
         conn = get_db()
         cur = conn.cursor()
         
         sql = _sql(conn, 
             'INSERT INTO "T_材質" ("tenant_id", "name", "price_type", "unit_price_area", '
-            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "shape_type", "wall_thickness", "category_id", "subcategory_id", "description", "active", "created_at", "updated_at") '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "shape_type", "wall_thickness", "category_id", "subcategory_id", "description", "supports_text_processing", "active", "created_at", "updated_at") '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
         )
         cur.execute(sql, (
             tenant_id, name, price_type,
@@ -300,6 +301,7 @@ def material_new():
             int(category_id) if category_id else None,
             int(subcategory_id) if subcategory_id else None,
             description,
+            supports_text_processing,
             1  # active: 1=有効
         ))
         conn.commit()
@@ -341,11 +343,12 @@ def material_edit(material_id):
         category_id = request.form.get('category_id')
         subcategory_id = request.form.get('subcategory_id')
         description = request.form.get('description')
+        supports_text_processing = request.form.get('supports_text_processing') == 'on'
         
         sql = _sql(conn, 
             'UPDATE "T_材質" SET "name" = %s, "price_type" = %s, "unit_price_area" = %s, '
             '"unit_price_weight" = %s, "unit_price_volume" = %s, "specific_gravity" = %s, "thickness" = %s, '
-            '"shape_type" = %s, "wall_thickness" = %s, "category_id" = %s, "subcategory_id" = %s, "description" = %s, "updated_at" = CURRENT_TIMESTAMP '
+            '"shape_type" = %s, "wall_thickness" = %s, "category_id" = %s, "subcategory_id" = %s, "description" = %s, "supports_text_processing" = %s, "updated_at" = CURRENT_TIMESTAMP '
             'WHERE "id" = %s AND "tenant_id" = %s'
         )
         cur.execute(sql, (
@@ -359,7 +362,7 @@ def material_edit(material_id):
             float(wall_thickness) if wall_thickness else None,
             int(category_id) if category_id else None,
             int(subcategory_id) if subcategory_id else None,
-            description, material_id, tenant_id
+            description, supports_text_processing, material_id, tenant_id
         ))
         conn.commit()
         conn.close()
@@ -370,7 +373,7 @@ def material_edit(material_id):
     # 材質情報を取得
     sql = _sql(conn, 
         'SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"unit_price_volume", "specific_gravity", "thickness", "description", "shape_type", "wall_thickness", "category_id", "subcategory_id" '
+        '"unit_price_volume", "specific_gravity", "thickness", "description", "shape_type", "wall_thickness", "category_id", "subcategory_id", "supports_text_processing" '
         'FROM "T_材質" WHERE "id" = %s AND "tenant_id" = %s'
     )
     cur.execute(sql, (material_id, tenant_id))
