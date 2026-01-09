@@ -91,3 +91,41 @@ def start_estimate(subtype_id):
     
     # 見積もり作成画面にリダイレクト
     return redirect(url_for('signboard.estimate_new'))
+
+@bp.route('/manage')
+@require_app_enabled('signboard')
+@require_roles('tenant_admin')
+def manage():
+    """見積タイプ・サブタイプ管理画面"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # 見積タイプ一覧を取得
+    sql = _sql(conn, '''
+        SELECT id, name, code, description, display_order
+        FROM "T_見積タイプ"
+        ORDER BY display_order
+    ''')
+    cur.execute(sql)
+    estimate_types = cur.fetchall()
+    
+    # 各見積タイプのサブタイプを取得
+    types_with_subtypes = []
+    for et in estimate_types:
+        sql = _sql(conn, '''
+            SELECT id, name, code, description, display_order
+            FROM "T_見積サブタイプ"
+            WHERE estimate_type_id = %s
+            ORDER BY display_order
+        ''')
+        cur.execute(sql, (et[0],))
+        subtypes = cur.fetchall()
+        types_with_subtypes.append({
+            'type': et,
+            'subtypes': subtypes
+        })
+    
+    cur.close()
+    conn.close()
+    
+    return render_template('estimate_type_manage.html', types_with_subtypes=types_with_subtypes)

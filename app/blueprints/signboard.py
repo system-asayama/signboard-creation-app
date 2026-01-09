@@ -161,12 +161,15 @@ def calculate_price(material_id, width_mm, height_mm, quantity):
 @require_app_enabled('signboard')
 @require_roles('tenant_admin', 'admin')
 def index():
-    """プロジェクト一覧にリダイレクト"""
-    try:
-        return redirect(url_for('project.index'))
-    except:
-        # url_forが失敗した場合は直接URLを指定
-        return redirect('/signboard/projects/')
+    """看板見積もりアプリのトップページ - メニュー選択画面"""
+    return render_template('signboard_menu.html')
+
+@bp.route('/master')
+@require_app_enabled('signboard')
+@require_roles('tenant_admin')
+def master_menu():
+    """マスター登録メニュー画面"""
+    return render_template('signboard_master_menu.html')
 
 @bp.route('/estimates')
 @require_app_enabled('signboard')
