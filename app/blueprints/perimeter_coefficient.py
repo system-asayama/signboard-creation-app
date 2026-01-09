@@ -207,6 +207,63 @@ def delete(coefficient_id):
     
     return redirect(url_for('perimeter_coefficient.index'))
 
+@perimeter_coefficient_bp.route('/api/list', methods=['GET'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def api_list():
+    """文字周長係数一覧API（見積もり作成画面で使用）"""
+    tenant_id = session.get('tenant_id')
+    if not tenant_id:
+        return jsonify({'success': False, 'error': 'ログインが必要です'}), 401
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # テナント固有の係数を優先、なければデフォルト係数を使用
+    cur.execute('''
+        WITH ranked_coefficients AS (
+            SELECT 
+                "ID",
+                "文字種類",
+                "係数",
+                "説明",
+                ROW_NUMBER() OVER (PARTITION BY "文字種類" ORDER BY "テナントID" DESC NULLS LAST) as rn
+            FROM "T_文字周長係数"
+            WHERE "テナントID" IS NULL OR "テナントID" = %s
+        )
+        SELECT "ID", "文字種類", "係数", "説明"
+        FROM ranked_coefficients
+        WHERE rn = 1
+        ORDER BY 
+            CASE "文字種類"
+                WHEN 'ひらがな' THEN 1
+                WHEN 'カタカナ' THEN 2
+                WHEN '漢字（簡単）' THEN 3
+                WHEN '漢字（普通）' THEN 4
+                WHEN '漢字（複雑）' THEN 5
+                WHEN '英数字（大文字）' THEN 6
+                WHEN '英数字（小文字）' THEN 7
+                WHEN '記号' THEN 8
+                ELSE 99
+            END
+    ''', (tenant_id,))
+    
+    coefficients = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    result = [
+        {
+            'id': row[0],
+            'character_type': row[1],
+            'coefficient': float(row[2]),
+            'description': row[3]
+        }
+        for row in coefficients
+    ]
+    
+    return jsonify({'success': True, 'data': result})
+
 @perimeter_coefficient_bp.route('/api/coefficients', methods=['GET'])
 @require_app_enabled('signboard')
 @require_roles('tenant_admin', 'admin')

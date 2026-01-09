@@ -128,7 +128,8 @@ function addItem() {
     const priceType = mat[2] === 'area' ? '(面積単価)' : mat[2] === 'volume' ? '(体積単価)' : '(重量単価)';
     const shapeType = mat[3] || 'square';
     const wallThickness = mat[4] || '';
-    materialOptions += `<option value="${mat[0]}" data-price-type="${mat[2]}" data-shape-type="${shapeType}" data-wall-thickness="${wallThickness}">${mat[1]} ${priceType}</option>`;
+    const supportsTextProcessing = mat[5] || false;
+    materialOptions += `<option value="${mat[0]}" data-price-type="${mat[2]}" data-shape-type="${shapeType}" data-wall-thickness="${wallThickness}" data-supports-text-processing="${supportsTextProcessing}">${mat[1]} ${priceType}</option>`;
   });
   
   itemDiv.innerHTML = `
@@ -176,6 +177,78 @@ function addItem() {
         <strong>小計: ¥<span id="itemSubtotal-${itemCounter}">-</span></strong>
       </div>
     </div>
+    
+    <!-- 文字加工UI -->
+    <div id="textProcessing-${itemCounter}" style="display: none; background: #fff3cd; padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 2px solid #ffc107;">
+      <h4 style="margin: 0 0 0.8rem 0; color: #856404;">✂️ 文字加工情報</h4>
+      
+      <div style="margin-bottom: 0.8rem;">
+        <label>入力方法</label>
+        <select id="textMode-${itemCounter}" name="items[${itemCounter}][text_processing_mode]" onchange="onTextModeChange(${itemCounter})" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+          <option value="overall">全体サイズ（簡易見積もり）</option>
+          <option value="individual">1文字ずつ（精密見積もり）</option>
+        </select>
+      </div>
+      
+      <!-- 全体サイズモード -->
+      <div id="overallMode-${itemCounter}">
+        <div style="margin-bottom: 0.5rem;">
+          <label>文字内容</label>
+          <input type="text" name="items[${itemCounter}][text_content]" placeholder="例: 営業中" onchange="calculatePerimeter(${itemCounter})" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;" />
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <div>
+            <label>全体幅（mm）</label>
+            <input type="number" name="items[${itemCounter}][text_width]" step="0.1" min="0" placeholder="300" onchange="calculatePerimeter(${itemCounter})" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;" />
+          </div>
+          <div>
+            <label>全体高さ（mm）</label>
+            <input type="number" name="items[${itemCounter}][text_height]" step="0.1" min="0" placeholder="100" onchange="calculatePerimeter(${itemCounter})" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;" />
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 0.5rem;">
+          <label>文字種類</label>
+          <select id="characterType-${itemCounter}" name="items[${itemCounter}][character_type_id]" onchange="calculatePerimeter(${itemCounter})" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- 1文字ずつモード -->
+      <div id="individualMode-${itemCounter}" style="display: none;">
+        <div id="characterList-${itemCounter}" style="margin-bottom: 0.5rem;">
+          <!-- 文字行が動的に追加される -->
+        </div>
+        <button type="button" onclick="addCharacter(${itemCounter})" style="background: #28a745; color: white; border: none; border-radius: 4px; padding: 0.5rem 1rem; cursor: pointer;">+ 文字追加</button>
+      </div>
+      
+      <!-- 推定周長と加工賃 -->
+      <div style="background: white; padding: 0.8rem; border-radius: 4px; margin-top: 0.8rem; border: 1px solid #ffc107;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <div>
+            <label style="font-size: 0.85rem; color: #666;">推定周長</label>
+            <div style="font-size: 1.1rem; font-weight: bold; color: #856404;"><span id="estimatedPerimeter-${itemCounter}">-</span> mm</div>
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; color: #666;">実測周長（任意）</label>
+            <input type="number" name="items[${itemCounter}][actual_perimeter]" step="0.1" min="0" placeholder="実測値" onchange="calculatePerimeter(${itemCounter})" style="width: 100%; padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem;" />
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div>
+            <label style="font-size: 0.85rem; color: #666;">周長単価（円/mm）</label>
+            <input type="number" name="items[${itemCounter}][perimeter_unit_price]" step="0.1" min="0" value="5" onchange="calculatePerimeter(${itemCounter})" style="width: 100%; padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem;" />
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; color: #666;">加工賃</label>
+            <div style="font-size: 1.2rem; font-weight: bold; color: #28a745;">¥<span id="processingCost-${itemCounter}">-</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
   
   container.appendChild(itemDiv);
@@ -194,12 +267,23 @@ function onMaterialChange(itemId) {
   const itemDiv = document.getElementById(`item-${itemId}`);
   const materialSelect = itemDiv.querySelector(`select[name="items[${itemId}][material_id]"]`);
   const shapeTypeSelect = document.getElementById(`shapeType-${itemId}`);
+  const textProcessingDiv = document.getElementById(`textProcessing-${itemId}`);
   
   const selectedOption = materialSelect.options[materialSelect.selectedIndex];
   const shapeType = selectedOption.getAttribute('data-shape-type') || 'square';
+  const supportsTextProcessing = selectedOption.getAttribute('data-supports-text-processing') === 'true';
   
   // 材質のデフォルト形状タイプを設定
   shapeTypeSelect.value = shapeType;
+  
+  // 文字加工UIの表示/非表示
+  if (supportsTextProcessing) {
+    textProcessingDiv.style.display = 'block';
+    // 文字周長係数を読み込む
+    loadPerimeterCoefficients(itemId);
+  } else {
+    textProcessingDiv.style.display = 'none';
+  }
   
   calculateItemPrice(itemId);
 }
@@ -461,6 +545,131 @@ function applyAnalysisResult(data, mode) {
       }, 100 * (index + 1)); // 遅延を少しずつずらす
     }
   });
+}
+
+// 文字周長係数をキャッシュ
+let perimeterCoefficients = [];
+
+// 文字周長係数を読み込む
+function loadPerimeterCoefficients(itemId) {
+  // 既に読み込み済みの場合はキャッシュを使用
+  if (perimeterCoefficients.length > 0) {
+    populateCharacterTypes(itemId);
+    return;
+  }
+  
+  fetch('{{ url_for("perimeter_coefficient.api_list") }}')
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        perimeterCoefficients = result.data;
+        populateCharacterTypes(itemId);
+      } else {
+        console.error('文字周長係数の読み込みエラー:', result.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
+
+// 文字種類セレクトボックスを設定
+function populateCharacterTypes(itemId) {
+  const characterTypeSelect = document.getElementById(`characterType-${itemId}`);
+  if (!characterTypeSelect) return;
+  
+  // 既存のオプションをクリア（最初の「選択してください」以外）
+  while (characterTypeSelect.options.length > 1) {
+    characterTypeSelect.remove(1);
+  }
+  
+  // 係数を追加
+  perimeterCoefficients.forEach(coeff => {
+    const option = document.createElement('option');
+    option.value = coeff.id;
+    option.textContent = `${coeff.character_type} (係数: ${coeff.coefficient})`;
+    option.setAttribute('data-coefficient', coeff.coefficient);
+    characterTypeSelect.appendChild(option);
+  });
+}
+
+// 入力モード切り替え
+function onTextModeChange(itemId) {
+  const textMode = document.getElementById(`textMode-${itemId}`).value;
+  const overallMode = document.getElementById(`overallMode-${itemId}`);
+  const individualMode = document.getElementById(`individualMode-${itemId}`);
+  
+  if (textMode === 'overall') {
+    overallMode.style.display = 'block';
+    individualMode.style.display = 'none';
+  } else {
+    overallMode.style.display = 'none';
+    individualMode.style.display = 'block';
+  }
+  
+  calculatePerimeter(itemId);
+}
+
+let perimeterCalculateTimeouts = {};
+
+// 推定周長と加工賃を計算
+function calculatePerimeter(itemId) {
+  clearTimeout(perimeterCalculateTimeouts[itemId]);
+  
+  perimeterCalculateTimeouts[itemId] = setTimeout(() => {
+    const textMode = document.getElementById(`textMode-${itemId}`).value;
+    
+    if (textMode === 'overall') {
+      calculatePerimeterOverall(itemId);
+    } else {
+      calculatePerimeterIndividual(itemId);
+    }
+  }, 500);
+}
+
+// 全体サイズモードの周長計算
+function calculatePerimeterOverall(itemId) {
+  const itemDiv = document.getElementById(`item-${itemId}`);
+  const textContent = itemDiv.querySelector(`input[name="items[${itemId}][text_content]"]`).value;
+  const textHeight = itemDiv.querySelector(`input[name="items[${itemId}][text_height]"]`).value;
+  const characterTypeSelect = document.getElementById(`characterType-${itemId}`);
+  const actualPerimeter = itemDiv.querySelector(`input[name="items[${itemId}][actual_perimeter]"]`).value;
+  const perimeterUnitPrice = itemDiv.querySelector(`input[name="items[${itemId}][perimeter_unit_price]"]`).value;
+  
+  if (!textContent || !textHeight || !characterTypeSelect.value) {
+    document.getElementById(`estimatedPerimeter-${itemId}`).textContent = '-';
+    document.getElementById(`processingCost-${itemId}`).textContent = '-';
+    return;
+  }
+  
+  const characterCount = textContent.length;
+  const selectedOption = characterTypeSelect.options[characterTypeSelect.selectedIndex];
+  const coefficient = parseFloat(selectedOption.getAttribute('data-coefficient'));
+  
+  // 推定周長 = 文字高さ × 文字数 × 係数
+  const estimatedPerimeter = parseFloat(textHeight) * characterCount * coefficient;
+  
+  // 実測周長があればそれを優先
+  const finalPerimeter = actualPerimeter ? parseFloat(actualPerimeter) : estimatedPerimeter;
+  
+  // 加工賃 = 周長 × 周長単価
+  const processingCost = Math.floor(finalPerimeter * parseFloat(perimeterUnitPrice || 0));
+  
+  document.getElementById(`estimatedPerimeter-${itemId}`).textContent = Math.floor(estimatedPerimeter).toLocaleString();
+  document.getElementById(`processingCost-${itemId}`).textContent = processingCost.toLocaleString();
+}
+
+// 1文字ずつモードの周長計算
+function calculatePerimeterIndividual(itemId) {
+  // TODO: 1文字ずつモードの実装（後で追加）
+  document.getElementById(`estimatedPerimeter-${itemId}`).textContent = '-';
+  document.getElementById(`processingCost-${itemId}`).textContent = '-';
+}
+
+// 1文字追加（将来の実装用）
+function addCharacter(itemId) {
+  // TODO: 1文字ずつモードの実装（後で追加）
+  alert('この機能は現在開発中です。まずは全体サイズモードをお試しください。');
 }
 
 // 初期明細を1つ追加

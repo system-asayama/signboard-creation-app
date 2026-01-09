@@ -451,6 +451,55 @@ def estimate_new():
                 flash(f'明細{item_id}の入力値が不正です: {str(e)}', 'error')
                 return redirect(url_for('signboard.estimate_new'))
             
+            # 文字加工情報を取得
+            text_processing_mode = request.form.get(f'items[{item_id}][text_processing_mode]')
+            text_content = request.form.get(f'items[{item_id}][text_content]')
+            text_width = request.form.get(f'items[{item_id}][text_width]')
+            text_height = request.form.get(f'items[{item_id}][text_height]')
+            character_type_id = request.form.get(f'items[{item_id}][character_type_id]')
+            actual_perimeter = request.form.get(f'items[{item_id}][actual_perimeter]')
+            perimeter_unit_price = request.form.get(f'items[{item_id}][perimeter_unit_price]')
+            
+            text_processing_data = None
+            processing_cost = 0
+            
+            if text_processing_mode and text_content and text_height and character_type_id:
+                try:
+                    # 推定周長を計算
+                    conn_temp = get_db()
+                    cur_temp = conn_temp.cursor()
+                    sql_coeff = _sql(conn_temp, 'SELECT "係数" FROM "T_文字周長係数" WHERE "ID" = %s')
+                    cur_temp.execute(sql_coeff, (int(character_type_id),))
+                    coeff_row = cur_temp.fetchone()
+                    conn_temp.close()
+                    
+                    if coeff_row:
+                        coefficient = float(coeff_row[0])
+                        character_count = len(text_content)
+                        estimated_perimeter = float(text_height) * character_count * coefficient
+                        
+                        # 実測周長があればそれを優先
+                        final_perimeter = float(actual_perimeter) if actual_perimeter else estimated_perimeter
+                        
+                        # 加工賃を計算
+                        if perimeter_unit_price:
+                            processing_cost = int(final_perimeter * float(perimeter_unit_price))
+                        
+                        text_processing_data = {
+                            'mode': text_processing_mode,
+                            'content': text_content,
+                            'width': float(text_width) if text_width else None,
+                            'height': float(text_height),
+                            'character_type_id': int(character_type_id),
+                            'estimated_perimeter': estimated_perimeter,
+                            'actual_perimeter': float(actual_perimeter) if actual_perimeter else None,
+                            'perimeter_unit_price': float(perimeter_unit_price) if perimeter_unit_price else None,
+                            'processing_cost': processing_cost
+                        }
+                except (ValueError, TypeError) as e:
+                    flash(f'明細{item_id}の文字加工情報の処理エラー: {str(e)}', 'error')
+                    return redirect(url_for('signboard.estimate_new'))
+            
             try:
                 calc = calculate_price(material_id, width, height, quantity)
                 items_data.append({
@@ -458,9 +507,11 @@ def estimate_new():
                     'width': width,
                     'height': height,
                     'quantity': quantity,
-                    'calc': calc
+                    'calc': calc,
+                    'text_processing': text_processing_data,
+                    'processing_cost': processing_cost
                 })
-                total_subtotal += calc['subtotal']
+                total_subtotal += calc['subtotal'] + processing_cost
             except ValueError as e:
                 flash(f'明細{item_id}の計算エラー: {str(e)}', 'error')
                 return redirect(url_for('signboard.estimate_new'))
@@ -512,26 +563,64 @@ def estimate_new():
         # 明細を登録
         for item in items_data:
             calc = item['calc']
-            sql = _sql(conn,
-                'INSERT INTO "T_看板見積もり明細" '
-                '("見積もりID", "材質ID", "幅", "高さ", "数量", "面積", "重量", '
-                '"単価タイプ", "単価", "割引率", "割引後単価", "小計", "作成日時", "更新日時") '
-                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
-            )
-            cur.execute(sql, (
-                estimate_id,
-                item['material_id'],
-                item['width'],
-                item['height'],
-                item['quantity'],
-                calc['area'],
-                calc['weight'],
-                calc['price_type'],
-                calc['unit_price'],
-                calc['discount_rate'],
-                calc['discounted_unit_price'],
-                calc['subtotal']
-            ))
+            text_proc = item.get('text_processing')
+            
+            # 文字加工情報がある場合
+            if text_proc:
+                sql = _sql(conn,
+                    'INSERT INTO "T_看板見積もり明細" '
+                    '("見積もりID", "材質ID", "幅", "高さ", "数量", "面積", "重量", '
+                    '"単価タイプ", "単価", "割引率", "割引後単価", "小計", '
+                    '"文字加工モード", "文字内容", "文字幅", "文字高さ", "文字種類ID", '
+                    '"推定周長", "実測周長", "周長単価", "加工賃", '
+                    '"作成日時", "更新日時") '
+                    'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+                )
+                cur.execute(sql, (
+                    estimate_id,
+                    item['material_id'],
+                    item['width'],
+                    item['height'],
+                    item['quantity'],
+                    calc['area'],
+                    calc['weight'],
+                    calc['price_type'],
+                    calc['unit_price'],
+                    calc['discount_rate'],
+                    calc['discounted_unit_price'],
+                    calc['subtotal'] + item['processing_cost'],  # 加工賃を含む
+                    text_proc['mode'],
+                    text_proc['content'],
+                    text_proc['width'],
+                    text_proc['height'],
+                    text_proc['character_type_id'],
+                    text_proc['estimated_perimeter'],
+                    text_proc['actual_perimeter'],
+                    text_proc['perimeter_unit_price'],
+                    text_proc['processing_cost']
+                ))
+            else:
+                # 文字加工情報がない場合
+                sql = _sql(conn,
+                    'INSERT INTO "T_看板見積もり明細" '
+                    '("見積もりID", "材質ID", "幅", "高さ", "数量", "面積", "重量", '
+                    '"単価タイプ", "単価", "割引率", "割引後単価", "小計", "作成日時", "更新日時") '
+                    'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+                )
+                cur.execute(sql, (
+                    estimate_id,
+                    item['material_id'],
+                    item['width'],
+                    item['height'],
+                    item['quantity'],
+                    calc['area'],
+                    calc['weight'],
+                    calc['price_type'],
+                    calc['unit_price'],
+                    calc['discount_rate'],
+                    calc['discounted_unit_price'],
+                    calc['subtotal']
+                ))
         
         # プロジェクトの合計金額を更新
         if project_id:
@@ -579,7 +668,7 @@ def estimate_new():
     
     # 材質一覧を取得（サブタイプに紐付く大分類の材質のみ）
     sql = _sql(conn, '''
-        SELECT DISTINCT m."id", m."name", m."price_type", m."shape_type", m."wall_thickness"
+        SELECT DISTINCT m."id", m."name", m."price_type", m."shape_type", m."wall_thickness", m."supports_text_processing"
         FROM "T_材質" m
         JOIN "T_中分類" sc ON m."subcategory_id" = sc."id"
         JOIN "T_大分類" c ON sc."category_id" = c."id"
