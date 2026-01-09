@@ -51,6 +51,19 @@
                 <p class="text-sm text-gray-600">見積タイプ・サブタイプの管理</p>
             </div>
         </a>
+        
+        <!-- 文字周長係数管理 -->
+        <a href="{{ url_for('perimeter_coefficient.index') }}" class="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border-2 border-transparent hover:border-orange-500">
+            <div class="flex flex-col items-center text-center">
+                <div class="bg-orange-100 rounded-full p-4 mb-3">
+                    <svg class="w-12 h-12 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold mb-2 text-gray-800">文字周長係数</h2>
+                <p class="text-sm text-gray-600">カッティングシート文字の係数管理</p>
+            </div>
+        </a>
     </div>
 </div>
 {% endblock %}

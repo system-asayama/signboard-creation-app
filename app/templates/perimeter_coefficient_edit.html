@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}文字周長係数 編集{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>文字周長係数 編集</h2>
+        <a href="{{ url_for('perimeter_coefficient.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> 一覧に戻る
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="char_type" class="form-label">文字種類 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="char_type" name="char_type" required
+                           value="{{ coefficient[1] }}" placeholder="例：漢字（普通）、ひらがな、カタカナ">
+                </div>
+
+                <div class="mb-3">
+                    <label for="coefficient" class="form-label">係数 <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="coefficient" name="coefficient" 
+                           step="0.1" min="0.1" required value="{{ coefficient[2] }}" placeholder="例：8.5">
+                    <div class="form-text">
+                        推定周長 = 文字高さ × 文字数 × 係数
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">説明</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"
+                              placeholder="例：一般的な漢字（例：営、業、店、時、間）">{{ coefficient[3] or '' }}</textarea>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> 更新
+                    </button>
+                    <a href="{{ url_for('perimeter_coefficient.index') }}" class="btn btn-outline-secondary">
+                        キャンセル
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}文字周長係数 新規作成{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>文字周長係数 新規作成</h2>
+        <a href="{{ url_for('perimeter_coefficient.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> 一覧に戻る
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="char_type" class="form-label">文字種類 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="char_type" name="char_type" required
+                           placeholder="例：漢字（普通）、ひらがな、カタカナ">
+                    <div class="form-text">
+                        既存の種類：ひらがな、カタカナ、漢字（簡単）、漢字（普通）、漢字（複雑）、英数字（大文字）、英数字（小文字）、記号
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="coefficient" class="form-label">係数 <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="coefficient" name="coefficient" 
+                           step="0.1" min="0.1" required placeholder="例：8.5">
+                    <div class="form-text">
+                        推定周長 = 文字高さ × 文字数 × 係数
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">説明</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"
+                              placeholder="例：一般的な漢字（例：営、業、店、時、間）"></textarea>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>係数の目安</strong><br>
+                    <ul class="mb-0">
+                        <li>ひらがな：6.0（丸みが多い）</li>
+                        <li>カタカナ：5.5（直線が多い）</li>
+                        <li>漢字（簡単）：7.0（画数が少ない）</li>
+                        <li>漢字（普通）：8.5（一般的な漢字）</li>
+                        <li>漢字（複雑）：10.0（画数が多い）</li>
+                        <li>英数字（大文字）：5.0</li>
+                        <li>英数字（小文字）：4.5</li>
+                        <li>記号：4.0</li>
+                    </ul>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> 登録
+                    </button>
+                    <a href="{{ url_for('perimeter_coefficient.index') }}" class="btn btn-outline-secondary">
+                        キャンセル
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

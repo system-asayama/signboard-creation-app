@@ -222,6 +222,12 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"⚠️ project blueprint 登録エラー: {e}")
 
+    try:
+        from .blueprints.perimeter_coefficient import perimeter_coefficient_bp
+        app.register_blueprint(perimeter_coefficient_bp)
+    except Exception as e:
+        print(f"⚠️ perimeter_coefficient blueprint 登録エラー: {e}")
+
     # エラーハンドラ
     @app.errorhandler(404)
     def not_found(error):

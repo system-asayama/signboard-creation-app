@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}文字周長係数管理{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>文字周長係数管理</h2>
+        <div>
+            <a href="{{ url_for('signboard.master') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> マスター登録に戻る
+            </a>
+            <a href="{{ url_for('perimeter_coefficient.new') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新規作成
+            </a>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>文字周長係数について</strong><br>
+        カッティングシート文字の周長を推定するための係数です。<br>
+        <code>推定周長 = 文字高さ × 文字数 × 係数</code><br>
+        デフォルト係数は全テナント共通です。テナント固有の係数を作成すると、そちらが優先されます。
+    </div>
+
+    {% if coefficients %}
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>文字種類</th>
+                        <th>係数</th>
+                        <th>説明</th>
+                        <th>種別</th>
+                        <th>更新日時</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for coef in coefficients %}
+                    <tr>
+                        <td>
+                            <strong>{{ coef[1] }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ coef[2] }}</span>
+                        </td>
+                        <td>{{ coef[3] or '-' }}</td>
+                        <td>
+                            {% if coef[4] is none %}
+                            <span class="badge bg-secondary">デフォルト</span>
+                            {% else %}
+                            <span class="badge bg-success">カスタム</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ coef[5].strftime('%Y-%m-%d %H:%M') if coef[5] else '-' }}</td>
+                        <td>
+                            {% if coef[4] is not none %}
+                            <a href="{{ url_for('perimeter_coefficient.edit', coefficient_id=coef[0]) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> 編集
+                            </a>
+                            <form method="POST" action="{{ url_for('perimeter_coefficient.delete', coefficient_id=coef[0]) }}" style="display: inline;" onsubmit="return confirm('本当に削除しますか？');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i> 削除
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted">編集不可</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        文字周長係数が登録されていません。
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <h4>計算例</h4>
+        <div class="card">
+            <div class="card-body">
+                <p><strong>例：「営業中」という文字（文字高さ100mm）</strong></p>
+                <ul>
+                    <li>文字内容：営業中</li>
+                    <li>文字数：3文字</li>
+                    <li>文字種類：漢字（普通）</li>
+                    <li>係数：8.5</li>
+                </ul>
+                <p><strong>推定周長 = 100mm × 3文字 × 8.5 = 2,550mm</strong></p>
+                <p>加工賃（周長単価5円/mmの場合）= 2,550mm × 5円/mm = <strong>12,750円</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
