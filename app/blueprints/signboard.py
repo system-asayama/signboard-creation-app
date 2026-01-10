@@ -286,7 +286,7 @@ def material_new():
         
         sql = _sql(conn, 
             'INSERT INTO "T_材質" ("tenant_id", "name", "price_type", "unit_price_area", '
-            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "shape_type", "wall_thickness", "category_id", "subcategory_id", "description", "supports_text_processing", "active", "created_at", "updated_at") '
+            '"unit_price_weight", "unit_price_volume", "specific_gravity", "thickness", "shape_type", "wall_thickness", "category_id", "subcategory_id", "description", "文字加工対応", "active", "created_at", "updated_at") '
             'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
         )
         cur.execute(sql, (
@@ -348,7 +348,7 @@ def material_edit(material_id):
         sql = _sql(conn, 
             'UPDATE "T_材質" SET "name" = %s, "price_type" = %s, "unit_price_area" = %s, '
             '"unit_price_weight" = %s, "unit_price_volume" = %s, "specific_gravity" = %s, "thickness" = %s, '
-            '"shape_type" = %s, "wall_thickness" = %s, "category_id" = %s, "subcategory_id" = %s, "description" = %s, "supports_text_processing" = %s, "updated_at" = CURRENT_TIMESTAMP '
+            '"shape_type" = %s, "wall_thickness" = %s, "category_id" = %s, "subcategory_id" = %s, "description" = %s, "文字加工対応" = %s, "updated_at" = CURRENT_TIMESTAMP '
             'WHERE "id" = %s AND "tenant_id" = %s'
         )
         cur.execute(sql, (
@@ -373,7 +373,7 @@ def material_edit(material_id):
     # 材質情報を取得
     sql = _sql(conn, 
         'SELECT "id", "name", "price_type", "unit_price_area", "unit_price_weight", '
-        '"unit_price_volume", "specific_gravity", "thickness", "description", "shape_type", "wall_thickness", "category_id", "subcategory_id", "supports_text_processing" '
+        '"unit_price_volume", "specific_gravity", "thickness", "description", "shape_type", "wall_thickness", "category_id", "subcategory_id", "文字加工対応" '
         'FROM "T_材質" WHERE "id" = %s AND "tenant_id" = %s'
     )
     cur.execute(sql, (material_id, tenant_id))
@@ -671,7 +671,7 @@ def estimate_new():
     
     # 材質一覧を取得（サブタイプに紐付く大分類の材質のみ）
     sql = _sql(conn, '''
-        SELECT DISTINCT m."id", m."name", m."price_type", m."shape_type", m."wall_thickness", m."supports_text_processing"
+        SELECT DISTINCT m."id", m."name", m."price_type", m."shape_type", m."wall_thickness", m."文字加工対応"
         FROM "T_材質" m
         JOIN "T_中分類" sc ON m."subcategory_id" = sc."id"
         JOIN "T_大分類" c ON sc."category_id" = c."id"
