@@ -4,13 +4,19 @@
 -- 文字周長係数テーブル
 CREATE TABLE IF NOT EXISTS "T_文字周長係数" (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(50) NOT NULL UNIQUE COMMENT '文字種類名（例: ひらがな、カタカナ、漢字（簡単）等）',
-  coefficient DECIMAL(4, 2) NOT NULL COMMENT '周長係数（例: 6.0, 8.5等）',
-  display_order INT NOT NULL DEFAULT 0 COMMENT '表示順序',
-  is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT '有効フラグ',
+  name VARCHAR(50) NOT NULL UNIQUE,
+  coefficient DECIMAL(4, 2) NOT NULL,
+  display_order INT NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- カラムコメントを追加
+COMMENT ON COLUMN "T_文字周長係数".name IS '文字種類名（例: ひらがな、カタカナ、漢字（簡単）等）';
+COMMENT ON COLUMN "T_文字周長係数".coefficient IS '周長係数（例: 6.0, 8.5等）';
+COMMENT ON COLUMN "T_文字周長係数".display_order IS '表示順序';
+COMMENT ON COLUMN "T_文字周長係数".is_active IS '有効フラグ';
 
 -- 初期データ投入
 INSERT INTO "T_文字周長係数" (name, coefficient, display_order) VALUES
