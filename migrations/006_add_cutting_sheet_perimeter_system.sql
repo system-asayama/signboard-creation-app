@@ -143,7 +143,7 @@ END $$;
 -- カッティングシート材質を文字加工対応に設定（既存データがあれば）
 UPDATE "T_材質"
 SET "文字加工対応" = TRUE
-WHERE "材質名" LIKE '%カッティング%' OR "材質名" LIKE '%シート%';
+WHERE "name" LIKE '%カッティング%' OR "name" LIKE '%シート%';
 
 -- コメント追加
 COMMENT ON TABLE "T_文字周長係数" IS 'カッティングシート文字周長計算用の係数マスタ';
