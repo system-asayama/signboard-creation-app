@@ -680,11 +680,23 @@ def estimate_new():
     ''')
     cur.execute(sql, (tenant_id, subtype_id))
     materials = cur.fetchall()
+    
+    # 文字周長係数を取得
+    sql = _sql(conn, '''
+        SELECT id, name, coefficient
+        FROM "T_文字周長係数"
+        WHERE is_active = TRUE
+        ORDER BY display_order, id
+    ''')
+    cur.execute(sql)
+    perimeter_coefficients = cur.fetchall()
+    
     conn.close()
     
     return render_template('signboard_estimate_new.html', 
                          materials=materials, 
-                         subtype_info=subtype_info)
+                         subtype_info=subtype_info,
+                         perimeter_coefficients=perimeter_coefficients)
 
 
 @bp.route('/<int:estimate_id>')
@@ -1008,3 +1020,145 @@ def estimate_delete(estimate_id):
     
     flash(f'見積もり {estimate_number} を削除しました', 'success')
     return redirect(url_for('signboard.index'))
+
+
+# ============================================================
+# 文字周長係数マスタ
+# ============================================================
+
+@bp.route('/perimeter_coefficient/')
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def perimeter_coefficient_list():
+    """文字周長係数一覧"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    sql = _sql(conn, '''
+        SELECT id, name, coefficient, NULL as description, NULL as tenant_id, updated_at
+        FROM "T_文字周長係数"
+        ORDER BY display_order, id
+    ''')
+    cur.execute(sql)
+    coefficients = cur.fetchall()
+    conn.close()
+    
+    return render_template('perimeter_coefficient_list.html', coefficients=coefficients)
+
+
+@bp.route('/perimeter_coefficient/new', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def perimeter_coefficient_new():
+    """文字周長係数新規登録"""
+    if request.method == 'POST':
+        name = request.form.get('char_type', '').strip()
+        coefficient = request.form.get('coefficient', '').strip()
+        description = request.form.get('description', '').strip()
+        display_order = 0  # デフォルト値
+        is_active = True  # デフォルトで有効
+        
+        if not name or not coefficient:
+            flash('文字種類名と係数は必須です', 'error')
+            return render_template('perimeter_coefficient_new.html')
+        
+        try:
+            coefficient = float(coefficient)
+            display_order = int(display_order)
+        except ValueError:
+            flash('係数と表示順序は数値で入力してください', 'error')
+            return render_template('perimeter_coefficient_new.html')
+        
+        conn = get_db()
+        cur = conn.cursor()
+        
+        sql = _sql(conn, '''
+            INSERT INTO "T_文字周長係数" (name, coefficient, display_order, is_active)
+            VALUES (%s, %s, %s, %s)
+        ''')
+        cur.execute(sql, (name, coefficient, display_order, is_active))
+        conn.commit()
+        conn.close()
+        
+        flash(f'文字周長係数「{name}」を登録しました', 'success')
+        return redirect(url_for('signboard.perimeter_coefficient_list'))
+    
+    return render_template('perimeter_coefficient_new.html')
+
+
+@bp.route('/perimeter_coefficient/<int:coefficient_id>/edit', methods=['GET', 'POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def perimeter_coefficient_edit(coefficient_id):
+    """文字周長係数編集"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if request.method == 'POST':
+        name = request.form.get('char_type', '').strip()
+        coefficient = request.form.get('coefficient', '').strip()
+        description = request.form.get('description', '').strip()
+        display_order = 0  # デフォルト値
+        is_active = True  # デフォルトで有効
+        
+        if not name or not coefficient:
+            flash('文字種類名と係数は必須です', 'error')
+            return redirect(url_for('signboard.perimeter_coefficient_edit', coefficient_id=coefficient_id))
+        
+        try:
+            coefficient = float(coefficient)
+            display_order = int(display_order)
+        except ValueError:
+            flash('係数と表示順序は数値で入力してください', 'error')
+            return redirect(url_for('signboard.perimeter_coefficient_edit', coefficient_id=coefficient_id))
+        
+        sql = _sql(conn, '''
+            UPDATE "T_文字周長係数"
+            SET name = %s, coefficient = %s, display_order = %s, is_active = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        ''')
+        cur.execute(sql, (name, coefficient, display_order, is_active, coefficient_id))
+        conn.commit()
+        conn.close()
+        
+        flash(f'文字周長係数「{name}」を更新しました', 'success')
+        return redirect(url_for('signboard.perimeter_coefficient_list'))
+    
+    sql = _sql(conn, 'SELECT id, name, coefficient, NULL as description FROM "T_文字周長係数" WHERE id = %s')
+    cur.execute(sql, (coefficient_id,))
+    coefficient = cur.fetchone()
+    conn.close()
+    
+    if not coefficient:
+        flash('文字周長係数が見つかりません', 'error')
+        return redirect(url_for('signboard.perimeter_coefficient_list'))
+    
+    return render_template('perimeter_coefficient_edit.html', coefficient=coefficient)
+
+
+@bp.route('/perimeter_coefficient/<int:coefficient_id>/delete', methods=['POST'])
+@require_app_enabled('signboard')
+@require_roles('tenant_admin', 'admin')
+def perimeter_coefficient_delete(coefficient_id):
+    """文字周長係数削除"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    sql = _sql(conn, 'SELECT name FROM "T_文字周長係数" WHERE id = %s')
+    cur.execute(sql, (coefficient_id,))
+    row = cur.fetchone()
+    
+    if not row:
+        conn.close()
+        flash('文字周長係数が見つかりません', 'error')
+        return redirect(url_for('signboard.perimeter_coefficient_list'))
+    
+    name = row[0]
+    
+    sql = _sql(conn, 'DELETE FROM "T_文字周長係数" WHERE id = %s')
+    cur.execute(sql, (coefficient_id,))
+    conn.commit()
+    conn.close()
+    
+    flash(f'文字周長係数「{name}」を削除しました', 'success')
+    return redirect(url_for('signboard.perimeter_coefficient_list'))

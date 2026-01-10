@@ -558,19 +558,16 @@ function loadPerimeterCoefficients(itemId) {
     return;
   }
   
-  fetch('{{ url_for("perimeter_coefficient.api_list") }}')
-    .then(response => response.json())
-    .then(result => {
-      if (result.success) {
-        perimeterCoefficients = result.data;
-        populateCharacterTypes(itemId);
-      } else {
-        console.error('文字周長係数の読み込みエラー:', result.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-    });
+  // サーバーサイドから渡されたデータを使用
+  {% if perimeter_coefficients %}
+  perimeterCoefficients = [
+    {% for coef in perimeter_coefficients %}
+    { id: {{ coef[0] }}, name: '{{ coef[1] }}', coefficient: {{ coef[2] }} }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+  {% endif %}
+  
+  populateCharacterTypes(itemId);
 }
 
 // 文字種類セレクトボックスを設定
