@@ -51,9 +51,9 @@
         <input type="number" id="unit_price_volume" name="unit_price_volume" step="0.01" min="0" value="{{ material[5] if material[5] else '' }}" />
       </div>
 
-      <div>
+      <div id="shape_type_field" style="display: {% if material[11] and categories|selectattr('0', 'equalto', material[11])|map(attribute='1')|first in ['支柱', '構造部材'] %}block{% else %}none{% endif %};">
         <label for="shape_type">形状タイプ <span style="color: red;">*</span></label>
-        <select id="shape_type" name="shape_type" required onchange="toggleWallThicknessField()">
+        <select id="shape_type" name="shape_type" onchange="toggleWallThicknessField()">
           <option value="square" {% if material[9] == 'square' or not material[9] %}selected{% endif %}>角形</option>
           <option value="round_solid" {% if material[9] == 'round_solid' %}selected{% endif %}>丸形（中実）</option>
           <option value="round_pipe" {% if material[9] == 'round_pipe' %}selected{% endif %}>丸形（パイプ）</option>
@@ -120,12 +120,30 @@ function loadSubcategories() {
   const categoryId = document.getElementById('category_id').value;
   const subcategorySelect = document.getElementById('subcategory_id');
   const currentSubcategoryId = {{ material[12] if material[12] else 'null' }};
+  const shapeTypeField = document.getElementById('shape_type_field');
+  const shapeTypeSelect = document.getElementById('shape_type');
   
   // リセット
   subcategorySelect.innerHTML = '<option value="">選択してください</option>';
   
   if (!categoryId) {
+    shapeTypeField.style.display = 'none';
+    shapeTypeSelect.removeAttribute('required');
     return;
+  }
+  
+  // 選択された大分類のテキストを取得
+  const categorySelect = document.getElementById('category_id');
+  const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+  const categoryText = selectedOption.text;
+  
+  // 「支柱・構造部材」が含まれる場合のみ形状タイプを表示
+  if (categoryText.includes('支柱') || categoryText.includes('構造部材')) {
+    shapeTypeField.style.display = 'block';
+    shapeTypeSelect.setAttribute('required', 'required');
+  } else {
+    shapeTypeField.style.display = 'none';
+    shapeTypeSelect.removeAttribute('required');
   }
   
   // APIで中分類を取得
