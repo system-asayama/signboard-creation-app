@@ -1,28 +1,29 @@
-# データベースマイグレーション手順
+# データベースマイグレーション
 
-## 形状タイプと肉厚フィールドの追加
+## app_name → app_id リネーム
 
-### 実行コマンド
+### 実行方法
 
+#### ローカル環境
 ```bash
-heroku pg:psql --app signboard-creation-app-39ccf7162e88 < migrations/add_shape_type_and_wall_thickness.sql
+cd /path/to/app
+python3 migrations/rename_app_name_to_app_id.py
 ```
 
-### または、Heroku Dashboardから実行
+#### Heroku環境
+```bash
+heroku run python migrations/rename_app_name_to_app_id.py -a <app-name>
+```
 
-1. https://dashboard.heroku.com/apps/signboard-creation-app-39ccf7162e88/resources
-2. Heroku Postgresをクリック
-3. Settingsタブ → View Credentials
-4. Dataclipsまたはpsqlで接続
-5. `migrations/add_shape_type_and_wall_thickness.sql`の内容を実行
+### 対象テーブル
+- `T_テナントアプリ設定`
+- `T_店舗アプリ設定`
 
-### マイグレーション内容
+### 変更内容
+- `app_name` カラムを `app_id` にリネーム
+- データ型: VARCHAR(255) NOT NULL
 
-- `T_材質`テーブルに`shape_type`カラムを追加（デフォルト: 'square'）
-- `T_材質`テーブルに`wall_thickness`カラムを追加（NULLable）
-
-### 形状タイプの種類
-
-- `square`: 角形
-- `round_solid`: 丸形中実
-- `round_pipe`: 丸形パイプ
+### 注意事項
+- このマイグレーションは冪等性があります（複数回実行しても安全）
+- カラムが既に存在しない場合はスキップされます
+- エラーが発生した場合は自動的にロールバックされます
